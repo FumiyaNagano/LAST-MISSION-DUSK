@@ -1,5 +1,5 @@
 #include "DxLib.h"
-// #include "../../Player/Player.h"
+#include "../../Player/Player.h"
 #include "../../BackGround/BackGround.h"
 #include "../../Scene/SceneManager.h"
 // #include "../../Bullet/BulletManager.h"
@@ -17,33 +17,46 @@
 void InitPlayScene()
 {
 	InitBackGround();
+
+	InitPlayer();
 }
 
 void LoadPlayScene()
 {
 	LoadBackGround("Data/BackGround/The1stOriginalGameBG.png", BACK_GROUND_LAYER_3);
+
+	LoadPlayer();
 }
 
 void StartPlayScene()
 {
+	StartPlayer();
 }
 
 void StepPlayScene()
 {
 	StepBackGround();
+
+	StepPlayer();
 }
 
 void UpdatePlayScene()
 {
 	UpdateBackGround();
+
+	UpdatePlayer();
 }
 
 void DrawPlayScene()
 {
 	DrawBackGround();
+
+	DrawPlayer();
 }
 
 void FinPlayScene()
 {
 	FinBackGround();
+
+	FinPlayer();
 }
