@@ -9,6 +9,7 @@
 //#include "../Bullet/BulletManager.h"
 //#include "../Scene/SceneManager.h"
 //#include "../Sound/SoundManager.h"
+#include "../Map/Block.h"
 
 // HP表示文字列
 #define PLAYER_HP_STRING ("%d")
@@ -99,18 +100,44 @@ void StepPlayer()
 
 void UpdatePlayer()
 {
-	// 死んでいたら処理しない
 	if (!g_PlayerData.active) return;
 
-	// 移動処理
-	g_PlayerData.posX += g_PlayerData.moveX;
-	g_PlayerData.posY += g_PlayerData.moveY;
+	// X方向の移動
+	float nextX = g_PlayerData.posX + g_PlayerData.moveX;
 
-	// 画面外に出ないように移動制限
-	if (g_PlayerData.posX < PLAYER_MOVE_AREA_LEFT) g_PlayerData.posX = PLAYER_MOVE_AREA_LEFT;
-	if (g_PlayerData.posX > PLAYER_MOVE_AREA_RIGHT) g_PlayerData.posX = PLAYER_MOVE_AREA_RIGHT;
-	if (g_PlayerData.posY < PLAYER_MOVE_AREA_TOP) g_PlayerData.posY = PLAYER_MOVE_AREA_TOP;
-	if (g_PlayerData.posY > PLAYER_MOVE_AREA_BOTTOM) g_PlayerData.posY = PLAYER_MOVE_AREA_BOTTOM;
+	if (!CheckBlockCollision(
+		nextX,
+		g_PlayerData.posY,
+		PLAYER_WIDTH,
+		PLAYER_HEIGHT))
+	{
+		g_PlayerData.posX = nextX;
+	}
+
+	// Y方向の移動
+	float nextY = g_PlayerData.posY + g_PlayerData.moveY;
+
+	if (!CheckBlockCollision(
+		g_PlayerData.posX,
+		nextY,
+		PLAYER_WIDTH,
+		PLAYER_HEIGHT))
+	{
+		g_PlayerData.posY = nextY;
+	}
+
+	// 画面外への移動制限
+	if (g_PlayerData.posX < PLAYER_MOVE_AREA_LEFT)
+		g_PlayerData.posX = PLAYER_MOVE_AREA_LEFT;
+
+	if (g_PlayerData.posX > PLAYER_MOVE_AREA_RIGHT)
+		g_PlayerData.posX = PLAYER_MOVE_AREA_RIGHT;
+
+	if (g_PlayerData.posY < PLAYER_MOVE_AREA_TOP)
+		g_PlayerData.posY = PLAYER_MOVE_AREA_TOP;
+
+	if (g_PlayerData.posY > PLAYER_MOVE_AREA_BOTTOM)
+		g_PlayerData.posY = PLAYER_MOVE_AREA_BOTTOM;
 }
 
 void DrawPlayer()

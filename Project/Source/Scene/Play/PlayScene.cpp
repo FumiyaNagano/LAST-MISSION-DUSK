@@ -11,6 +11,8 @@
 // #include "../../UIImage/UIText.h"
 // #include "../../Score/Score.h"
 #include "../../GameSetting/GameSetting.h"
+#include "../../Map/MapChip.h"
+#include "../../Map/Block.h"
 
 // 全てのスクリプトの参考元 : STG課題
 
@@ -19,6 +21,8 @@ void InitPlayScene()
 	InitBackGround();
 
 	InitPlayer();
+
+	InitBlock();
 }
 
 void LoadPlayScene()
@@ -26,11 +30,17 @@ void LoadPlayScene()
 	LoadBackGround("Data/BackGround/The1stOriginalGameBG.png", BACK_GROUND_LAYER_3);
 
 	LoadPlayer();
+
+	LoadBlock();
+
+	LoadMapChipData();
 }
 
 void StartPlayScene()
 {
 	StartPlayer();
+
+	CreateMap();
 }
 
 void StepPlayScene()
@@ -38,6 +48,8 @@ void StepPlayScene()
 	StepBackGround();
 
 	StepPlayer();
+
+	StepBlock();
 }
 
 void UpdatePlayScene()
@@ -51,6 +63,8 @@ void DrawPlayScene()
 {
 	DrawBackGround();
 
+	DrawBlock();
+
 	DrawPlayer();
 }
 
@@ -59,4 +73,6 @@ void FinPlayScene()
 	FinBackGround();
 
 	FinPlayer();
+
+	FinBlock();
 }

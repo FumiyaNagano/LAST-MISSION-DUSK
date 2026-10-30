@@ -34,6 +34,9 @@
     <Filter Include="Source\Player">
       <UniqueIdentifier>{29c2e3d3-48de-4072-aae8-b3ef1d81ac18}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Map">
+      <UniqueIdentifier>{137dc320-f148-4e83-ba2e-0209e3d1dbf1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\BackGround\BackGround.cpp">
@@ -66,6 +69,12 @@
     <ClCompile Include="Source\Player\Player.cpp">
       <Filter>Source\Player</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Map\Block.cpp">
+      <Filter>Source\Map</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Map\MapChip.cpp">
+      <Filter>Source\Map</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\BackGround\BackGround.h">
@@ -97,6 +106,15 @@
     </ClInclude>
     <ClInclude Include="Source\Player\Player.h">
       <Filter>Source\Player</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Map\MapParameter.h">
+      <Filter>Source\Map</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Map\Block.h">
+      <Filter>Source\Map</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Map\MapChip.h">
+      <Filter>Source\Map</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -38,6 +38,10 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 
 	while (ProcessMessage() >= 0)
 	{
+		ClearDrawScreen();
+
+		Sleep(1);
+
 		if (CheckHitKey(KEY_INPUT_ESCAPE)) break;
 
 		// FPS§Œä‚ğXV
