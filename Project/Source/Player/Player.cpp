@@ -28,9 +28,9 @@
 
 // 移動可能エリア
 #define PLAYER_MOVE_AREA_LEFT	(0.0f)
-#define PLAYER_MOVE_AREA_RIGHT	(1850.0f)
+#define PLAYER_MOVE_AREA_RIGHT	(1874.0f)
 #define PLAYER_MOVE_AREA_TOP	(0.0f)
-#define PLAYER_MOVE_AREA_BOTTOM	(930.0f)
+#define PLAYER_MOVE_AREA_BOTTOM	(980.0f)
 
 // プレイヤーのHP
 #define PLAYER_HP (100)
@@ -53,7 +53,7 @@ void InitPlayer()
 
 void LoadPlayer()
 {
-	g_PlayerData.handle = LoadGraph("Data/Player/PlayerIdle.png");
+	g_PlayerData.handle = LoadGraph("Data/Player/PlayerIdleTest.png");
 }
 
 void StartPlayer()

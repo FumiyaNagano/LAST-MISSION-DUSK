@@ -1,9 +1,9 @@
 #pragma once
 #include "../UIImage/UIText.h"
 
-#define PLAYER_WIDTH	(70.0f)
-#define PLAYER_HEIGHT	(150.0f)
-#define PLAYER_RADIUS	(35.0f)
+#define PLAYER_WIDTH	(46.0f)
+#define PLAYER_HEIGHT	(100.0f)
+#define PLAYER_RADIUS	(23.0f)
 
 struct PlayerData
 {
