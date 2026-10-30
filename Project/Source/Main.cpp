@@ -1,4 +1,3 @@
-// GitHub Pullテスト用コメント
 #include "DxLib.h"
 #include "GameSetting/GameSetting.h"
 #include "FPS/FPS.h"
