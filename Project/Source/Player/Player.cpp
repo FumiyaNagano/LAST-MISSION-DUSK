@@ -43,10 +43,8 @@ PlayerData g_PlayerData = { 0 };
 void InitPlayer()
 {
 	g_PlayerData.hp = 0;
-	g_PlayerData.posX = PLAYER_DEFAULT_POS_X;
-	g_PlayerData.posY = PLAYER_DEFAULT_POS_Y;
-	g_PlayerData.moveX = 0.0f;
-	g_PlayerData.moveY = 0.0f;
+	g_PlayerData.pos = VGet(PLAYER_DEFAULT_POS_X, PLAYER_DEFAULT_POS_Y, 0.0f);
+	g_PlayerData.move = VGet(0.0f, 0.0f, 0.0f);
 	//g_PlayerData.bulletIntervalTimer = 0;
 	g_PlayerData.active = false;
 }
@@ -77,25 +75,18 @@ void StepPlayer()
 		g_PlayerData.bulletIntervalTimer--;
 	}*/
 
-	g_PlayerData.moveX = 0.0f;
-	g_PlayerData.moveY = 0.0f;
+	VECTOR dir = VGet(0.0f, 0.0f, 0.0f);
 
-	if (IsInputKey(KEY_W))
+	if (IsInputKey(KEY_W)) dir.y -= 1.0f;
+	if (IsInputKey(KEY_S)) dir.y += 1.0f;
+	if (IsInputKey(KEY_A)) dir.x -= 1.0f;
+	if (IsInputKey(KEY_D)) dir.x += 1.0f;
+
+	if (VSquareSize(dir) > 0.0f)
 	{
-		g_PlayerData.moveY = -PLAYER_MOVE_SPEED;
+		dir = VNorm(dir);
 	}
-	if (IsInputKey(KEY_S))
-	{
-		g_PlayerData.moveY = PLAYER_MOVE_SPEED;
-	}
-	if (IsInputKey(KEY_A))
-	{
-		g_PlayerData.moveX = -PLAYER_MOVE_SPEED;
-	}
-	if (IsInputKey(KEY_D))
-	{
-		g_PlayerData.moveX = PLAYER_MOVE_SPEED;
-	}
+	g_PlayerData.move = VScale(dir, PLAYER_MOVE_SPEED);
 }
 
 void UpdatePlayer()
@@ -103,41 +94,38 @@ void UpdatePlayer()
 	if (!g_PlayerData.active) return;
 
 	// X方向の移動
-	float nextX = g_PlayerData.posX + g_PlayerData.moveX;
+	VECTOR nextPos = VAdd(g_PlayerData.pos, g_PlayerData.move);
 
 	if (!CheckBlockCollision(
-		nextX,
-		g_PlayerData.posY,
+		nextPos.x,
+		g_PlayerData.pos.y,
 		PLAYER_WIDTH,
 		PLAYER_HEIGHT))
 	{
-		g_PlayerData.posX = nextX;
+		g_PlayerData.pos.x = nextPos.x;
 	}
 
-	// Y方向の移動
-	float nextY = g_PlayerData.posY + g_PlayerData.moveY;
-
 	if (!CheckBlockCollision(
-		g_PlayerData.posX,
-		nextY,
+		g_PlayerData.pos.x,
+		nextPos.y,
 		PLAYER_WIDTH,
 		PLAYER_HEIGHT))
 	{
-		g_PlayerData.posY = nextY;
+		g_PlayerData.pos.y = nextPos.y;
 	}
 
 	// 画面外への移動制限
-	if (g_PlayerData.posX < PLAYER_MOVE_AREA_LEFT)
-		g_PlayerData.posX = PLAYER_MOVE_AREA_LEFT;
+	if (g_PlayerData.pos.x < PLAYER_MOVE_AREA_LEFT)
+		g_PlayerData.pos.x = PLAYER_MOVE_AREA_LEFT;
 
-	if (g_PlayerData.posX > PLAYER_MOVE_AREA_RIGHT)
-		g_PlayerData.posX = PLAYER_MOVE_AREA_RIGHT;
+	if (g_PlayerData.pos.x > PLAYER_MOVE_AREA_RIGHT)
+		g_PlayerData.pos.x = PLAYER_MOVE_AREA_RIGHT;
 
-	if (g_PlayerData.posY < PLAYER_MOVE_AREA_TOP)
-		g_PlayerData.posY = PLAYER_MOVE_AREA_TOP;
+	if (g_PlayerData.pos.y < PLAYER_MOVE_AREA_TOP)
+		g_PlayerData.pos.y = PLAYER_MOVE_AREA_TOP;
 
-	if (g_PlayerData.posY > PLAYER_MOVE_AREA_BOTTOM)
-		g_PlayerData.posY = PLAYER_MOVE_AREA_BOTTOM;
+	if (g_PlayerData.pos.y > PLAYER_MOVE_AREA_BOTTOM)
+		g_PlayerData.pos.y = PLAYER_MOVE_AREA_BOTTOM;
 }
 
 void DrawPlayer()
@@ -146,7 +134,7 @@ void DrawPlayer()
 
 	if (g_PlayerData.active == true)
 	{
-		DrawGraph((int)g_PlayerData.posX, (int)g_PlayerData.posY, g_PlayerData.handle, TRUE);
+		DrawGraph((int)g_PlayerData.pos.x, (int)g_PlayerData.pos.y, g_PlayerData.handle, TRUE);
 	}
 }
 
@@ -166,7 +154,7 @@ void PlayerDead()
 	g_PlayerData.active = false;
 
 	// 死亡エフェクト
-	//StartAnimationEffect(PLAYER_DEAD, g_PlayerData.posX, g_PlayerData.posY, PLAYER_DEAD_EFFECT_INTERVAL);
+	//StartAnimationEffect(PLAYER_DEAD, g_PlayerData.pos.x, g_PlayerData.pos.y, PLAYER_DEAD_EFFECT_INTERVAL);
 
 	// 死亡SE
 	//PlaySE(SE_PLAYER_DEAD);

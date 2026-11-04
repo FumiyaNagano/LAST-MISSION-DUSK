@@ -1,4 +1,5 @@
 #pragma once
+#include "DxLib.h"
 #include "../UIImage/UIText.h"
 
 #define PLAYER_WIDTH	(46.0f)
@@ -11,10 +12,8 @@ struct PlayerData
 	int handle;
 	//int bulletIntervalTimer;
 	int hp;
-	float posX;
-	float posY;
-	float moveX;
-	float moveY;
+	VECTOR pos;
+	VECTOR move;
 	UITextData* hpText;
 };
 
