@@ -6,15 +6,51 @@
 #define PLAYER_HEIGHT	(100.0f)
 #define PLAYER_RADIUS	(23.0f)
 
+// プレイヤーのアニメーション
+#define PLAYER_ANIM_FRAME_MAX (16)
+
+enum PlayerState
+{
+	PLAYER_STATE_IDLE,
+	PLAYER_STATE_MOVE,
+	PLAYER_STATE_SHOOT,
+	PLAYER_STATE_DEAD,
+	PLAYER_STATE_NUM,
+};
+
+// プレイヤーのアニメーション関連設定
+// 1コマ分のデータ
+struct PlayerAnimFrame
+{
+	int handle;		// 切り出した画像
+	int width;		// このコマの幅
+	int height;		// このコマの高さ
+	int anchorX;	// コマ内での体の中心X座標
+};
+// アニメーション1種類分のデータ
+struct PlayerAnimData
+{
+	int srcHandle;		// 元画像のハンドル(DerivationGraphの参照元)
+	PlayerAnimFrame frames[PLAYER_ANIM_FRAME_MAX];
+	int frameNum;		// コマ数
+	float frameTime;	// 1コマの表示時間（秒）
+	bool loop;			// ループするか
+};
+
 struct PlayerData
 {
 	bool active;
-	int handle;
 	//int bulletIntervalTimer;
 	int hp;
 	VECTOR pos;
-	VECTOR move;
+	VECTOR move; // 移動速度（ピクセル/秒）
 	UITextData* hpText;
+
+	// アニメーション用
+	PlayerState state;
+	int animFrame;		// 現在のコマ番号
+	float animTimer;	// 現在のコマの経過時間（秒）
+	bool facingLeft;	// 左向きか（falseなら左向き）
 };
 
 // 関数のプロトタイプ宣言

@@ -14,6 +14,8 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 	// 画面解像度の設定
 	SetGraphMode(SCREEN_WIDTH, SCREEN_HEIGHT, SCREEN_COLOR_DEPTH);
 
+	SetWaitVSyncFlag(TRUE);
+
 	if (DxLib_Init() == -1)		// DxLib初期化処理
 	{
 		return -1;
@@ -34,7 +36,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 	// UIはゲーム起動と同時に初期化、ロード
 	//InitUIText();
 
-	//InitFPS();
+	InitFPS();
 
 	while (ProcessMessage() >= 0)
 	{
@@ -45,21 +47,23 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 		if (CheckHitKey(KEY_INPUT_ESCAPE)) break;
 
 		// FPS制御を更新
-		// UpdateFPS();
-
-		SceneManagerUpdate();
-
-		// FPS値描画
-		// DrawFPS();
+		UpdateFPS();
 
 		// 入力を更新
 		UpdateInput();
 
-		// 1フレームが速すぎた時の待機時間
-		// FPSWait();
+		ClearDrawScreen();
+
+		SceneManagerUpdate();
+
+		// FPS値描画
+		DrawFPS();
 
 		// 画面フリップ
 		ScreenFlip();
+
+		// 1フレームが速すぎた時の待機時間
+		FPSWait();
 	}
 
 	// 入力システム終了
