@@ -5,6 +5,9 @@
 int g_InputState = 0;
 // 前回の入力ビット
 int g_PrevInputState = 0;
+// マウス座標
+int g_MouseX = 0;
+int g_MouseY = 0;
 
 void InitInput()
 {
@@ -37,6 +40,13 @@ void UpdateInput()
 	{
 		g_InputState |= KEY_D;
 	}
+
+	if (GetMouseInput() & MOUSE_INPUT_LEFT)
+	{
+		g_InputState |= MOUSE_LEFT;
+	}
+
+	GetMousePoint(&g_MouseX, &g_MouseY);
 }
 
 void DrawInput()
@@ -55,4 +65,9 @@ bool IsInputKey(InputKey key)
 bool IsTriggerKey(InputKey key)
 {
 	return (g_InputState & key) && !(g_PrevInputState & key);
+}
+
+VECTOR GetMousePosition()
+{
+	return VGet((float)g_MouseX, (float)g_MouseY, 0.0f);
 }

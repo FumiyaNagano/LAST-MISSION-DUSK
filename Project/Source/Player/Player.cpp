@@ -7,10 +7,11 @@
 //#include "../Collision/Collision.h"
 //#include "../Score/Score.h"
 //#include "../Effect/AnimationEffect.h"
-//#include "../Bullet/BulletManager.h"
+#include "../Bullet/BulletManager.h"
 //#include "../Scene/SceneManager.h"
 //#include "../Sound/SoundManager.h"
 #include "../Map/Block.h"
+#include <math.h>
 
 // HP表示文字列
 #define PLAYER_HP_STRING ("%d")
@@ -20,13 +21,19 @@
 #define PLAYER_DEFAULT_POS_Y (300.0f)
 // 1秒あたりの移動速度（ピクセル/秒）
 #define PLAYER_MOVE_SPEED (240.0f)
+// 射撃アニメーションを表示する残り時間（秒）
+#define PLAYER_SHOOT_ANIM_TIME (0.2f)
 
 // 弾関連
-//#define PLAYER_DEFAULT_SHOT_SPEED	(20.0f) // 秒速に変更予定
-#define PLAYER_SHOT_LIFE		(10.0f)
-#define PLAYER_SHOT_OFFSET_X	(50.0f)
-#define PLAYER_SHOT_OFFSET_Y	(57.0f)
-#define PLAYER_SHOT_INTERVAL	(0.1f)
+#define PLAYER_DEFAULT_SHOT_SPEED		(1200.0f)
+#define PLAYER_SHOT_LIFE				(10.0f)
+#define PLAYER_SHOT_OFFSET_X			(50.0f)
+#define PLAYER_SHOT_OFFSET_Y			(25.0f)
+#define PLAYER_SHOT_INTERVAL			(0.1f)
+#define PLAYER_BULLET_RADIUS			(6.0f)
+#define PLAYER_SHOT_OFFSET_UP_X			(2.0f)	// 体の中心からの左右のずれ（右向き）
+#define PLAYER_SHOT_OFFSET_UP_Y			(20.0f)
+#define PLAYER_SHOT_MIN_AIM_DISTANCE	(10.0f)
 
 // 移動可能エリア
 #define PLAYER_MOVE_AREA_LEFT	(0.0f)
@@ -54,7 +61,7 @@ static PlayerAnimData g_PlayerAnim[PLAYER_STATE_NUM] = {};
 // アニメーション関連
 // ------------------------------------------------------------------------------------------------
 // 画像を読み込み、コマごとに切り出す
-static void LoadPlayerAnim(PlayerState state, const char* path, const FrameDef* defs, int frameNum, float frameTime, bool loop)
+static void LoadPlayerAnim(PlayerState state, const char* path, const FrameDef* defs, int frameNum, float frameTime, bool loop, bool baseFacingLeft = false)
 {
 	PlayerAnimData* anim = &g_PlayerAnim[state];
 
@@ -83,6 +90,7 @@ static void LoadPlayerAnim(PlayerState state, const char* path, const FrameDef* 
 	anim->frameNum = frameNum;
 	anim->frameTime = frameTime;
 	anim->loop = loop;
+	anim->baseFacingLeft = baseFacingLeft;
 }
 
 // 状態を切り替える（同じ状態なら何もしない）
@@ -131,6 +139,9 @@ void InitPlayer()
 	g_PlayerData.animFrame = 0;
 	g_PlayerData.animTimer = 0.0f;
 	g_PlayerData.active = false;
+	g_PlayerData.aimDir = VGet(1.0f, 0.0f, 0.0f);
+	g_PlayerData.shootTimer = 0.0f;
+	g_PlayerData.facingLeft = false;
 }
 
 void LoadPlayer()
@@ -138,15 +149,19 @@ void LoadPlayer()
 	// 各コマの {直径, 半径}。画像編集ソフトで測った値を入れる
 	// 幅の合計 = 画像の横幅になっていること
 	static const FrameDef idleDefs[] = { {46, 23} };
-	//static const FrameDef moveDefs[] = { {84, 42}, {90, 45}, {92, 46}, {92, 46}, {88, 44}, {88, 44} };
-	static const FrameDef moveDefs[] = { {70, 35}, {90, 45}, {74, 37} };
+	static const FrameDef moveDefs[] = { {84, 42}, {90, 45}, {92, 46}, {92, 46}, {88, 44}, {88, 44} };
+	static const FrameDef moveUpDefs[] = { {64, 32}, {76, 38}, {68, 34} };
+	static const FrameDef moveDownDefs[] = { {70, 35}, {90, 45}, {74, 37} };
 	static const FrameDef shootDefs[] = { {88, 44}, {112, 56} };
+	static const FrameDef shootUpDefs[] = { {70, 35}, {70, 35} };
 
 	// LoadPlayerAnim(PLAYER_STATE_****, "Data/Player/Player****.png", ****Defs, コマ数, 時間, ループ);
 	LoadPlayerAnim(PLAYER_STATE_IDLE, "Data/Player/PlayerIdle.png", idleDefs, 1, 0.15f, false);
-	//LoadPlayerAnim(PLAYER_STATE_MOVE, "Data/Player/PlayerMoveForward.png", moveDefs, 6, 0.15f, true);
-	LoadPlayerAnim(PLAYER_STATE_MOVE, "Data/Player/PlayerWalkingFrontView.png", moveDefs, 3, 0.2f, true);
+	LoadPlayerAnim(PLAYER_STATE_MOVE, "Data/Player/PlayerMoveForward.png", moveDefs, 6, 0.15f, true);
+	LoadPlayerAnim(PLAYER_STATE_MOVE_UP, "Data/Player/PlayerMoveBackView.png", moveUpDefs, 3, 0.2f, true);
+	LoadPlayerAnim(PLAYER_STATE_MOVE_DOWN, "Data/Player/PlayerMoveFrontView.png", moveDownDefs, 3, 0.2f, true);
 	LoadPlayerAnim(PLAYER_STATE_SHOOT, "Data/Player/PlayerShooting.png", shootDefs, 2, 0.10f, true);
+	LoadPlayerAnim(PLAYER_STATE_SHOOT_UP, "Data/Player/PlayerShootingBackView.png", shootUpDefs, 2, 0.10f, true, true);
 	// 画像でき次第:LoadPlayerAnim(PLAYER_STATE_DEAD, "Data/Player/PlayerDead.png", deadDefs, 1, 0.15f, false);
 }
 
@@ -169,6 +184,39 @@ void StartPlayer()
 	//g_PlayerData.hpText = CreateUIText(60.0f, 900.0f, text);
 }
 
+// プレイヤーの弾を1発撃つ（shootUp: 上向き射撃のアニメーションか）
+static void FirePlayerBullet(bool shootUp)
+{
+	// 銃口の位置（右向きの値を基準に、左向きは左右を反転）
+	VECTOR muzzle;
+	if (shootUp)
+	{
+		float dx = g_PlayerData.facingLeft ? -PLAYER_SHOT_OFFSET_UP_X : PLAYER_SHOT_OFFSET_UP_X;
+		muzzle = VGet(g_PlayerData.pos.x + PLAYER_WIDTH * 0.5f + dx, g_PlayerData.pos.y + PLAYER_SHOT_OFFSET_UP_Y, 0.0f);
+	}
+	else if (g_PlayerData.facingLeft)
+	{
+		muzzle = VGet(g_PlayerData.pos.x + PLAYER_WIDTH - PLAYER_SHOT_OFFSET_X, g_PlayerData.pos.y + PLAYER_SHOT_OFFSET_Y, 0.0f);
+	}
+	else
+	{
+		muzzle = VGet(g_PlayerData.pos.x + PLAYER_SHOT_OFFSET_X, g_PlayerData.pos.y + PLAYER_SHOT_OFFSET_Y, 0.0f);
+	}
+
+	// 銃口からカーソルへの向きを計算し直す
+	VECTOR dir = VSub(GetMousePosition(), muzzle);
+	if (VSize(dir) < PLAYER_SHOT_MIN_AIM_DISTANCE)
+	{
+		dir = g_PlayerData.aimDir;
+	}
+	else
+	{
+		dir = VNorm(dir);
+	}
+
+	FireBullet(BULLET_OWNER_PLAYER, muzzle, dir, PLAYER_DEFAULT_SHOT_SPEED, PLAYER_SHOT_LIFE, PLAYER_BULLET_RADIUS);
+}
+
 void StepPlayer()
 {
 	/*if (g_PlayerData.bulletIntervalTimer > 0.0f)
@@ -182,6 +230,7 @@ void StepPlayer()
 		return;
 	}
 
+	// 移動入力
 	VECTOR dir = VGet(0.0f, 0.0f, 0.0f);
 
 	if (IsInputKey(KEY_W)) dir.y -= 1.0f;
@@ -189,23 +238,62 @@ void StepPlayer()
 	if (IsInputKey(KEY_A)) dir.x -= 1.0f;
 	if (IsInputKey(KEY_D)) dir.x += 1.0f;
 
+	PlayerState nextState = PLAYER_STATE_IDLE;
+
 	if (VSquareSize(dir) > 0.0f)
 	{
 		// 左右の入力があるときだけ向きを更新（AD同時押しはdir.x = 0なので維持）
 		if (dir.x < 0.0f) g_PlayerData.facingLeft = true;
 		if (dir.x > 0.0f) g_PlayerData.facingLeft = false;
 
+		// 左右の入力を優先して状態を決める（斜め移動も左右アニメーション）
+		if (dir.x != 0.0f)		nextState = PLAYER_STATE_MOVE;
+		else if (dir.y < 0.0f)	nextState = PLAYER_STATE_MOVE_UP;
+		else					nextState = PLAYER_STATE_MOVE_DOWN;
+
 		dir = VNorm(dir);
-		SetPlayerState(PLAYER_STATE_MOVE);
-	}
-	else
-	{
-		SetPlayerState(PLAYER_STATE_IDLE);
 	}
 
 	g_PlayerData.move = VScale(dir, PLAYER_MOVE_SPEED);
 
-	// TODO: 弾の発射時にSetPlayer(PLAYER_STATE_SHOOT)を呼ぶ
+	// 狙う方向
+	VECTOR center = VGet(g_PlayerData.pos.x + PLAYER_WIDTH * 0.5f, g_PlayerData.pos.y + PLAYER_HEIGHT * 0.5f, 0.0f);
+
+	VECTOR aim = VSub(GetMousePosition(), center);
+
+	// カーソルが中心と重なった時は、前回の向きを維持する
+	if (VSquareSize(aim) > 0.0f)
+	{
+		g_PlayerData.aimDir = VNorm(aim);
+	}
+
+	// 射撃
+	bool fired = IsTriggerKey(MOUSE_LEFT);
+	if (fired)
+	{
+		g_PlayerData.shootTimer = PLAYER_SHOOT_ANIM_TIME;
+	}
+
+	if (g_PlayerData.shootTimer > 0.0f)
+	{
+		g_PlayerData.shootTimer -= GetDeltaTime();
+
+		// 射撃中は、体の向きで狙う方向を決める
+		if (g_PlayerData.aimDir.x < 0.0f) g_PlayerData.facingLeft = true;
+		if (g_PlayerData.aimDir.x > 0.0f) g_PlayerData.facingLeft = false;
+
+		// 縦成分が大きい上向きだけ専用アニメーション。横、斜め、下は横向きを使う
+		bool shootUp = (g_PlayerData.aimDir.y < 0.0f && fabsf(g_PlayerData.aimDir.y) > fabs(g_PlayerData.aimDir.x));
+		nextState = shootUp ? PLAYER_STATE_SHOOT_UP : PLAYER_STATE_SHOOT;
+
+		// 体の向きが確定した後で撃つ（銃口の位置が向きに依存するため）
+		if (fired)
+		{
+			FirePlayerBullet(shootUp);
+		}
+	}
+
+	SetPlayerState(nextState);
 }
 
 void UpdatePlayer()
@@ -257,7 +345,9 @@ void DrawPlayer()
 	float centerX = g_PlayerData.pos.x + PLAYER_WIDTH * 0.5f;
 	float drawY = g_PlayerData.pos.y + PLAYER_HEIGHT - (float)f->height;
 
-	if (g_PlayerData.facingLeft)
+	bool flip = (g_PlayerData.facingLeft != anim->baseFacingLeft);
+
+	if (flip)
 	{
 		// 反転後の体の中心は、左端から（幅 - anchorX）の位置になる
 		float drawX = centerX - (float)(f->width - f->anchorX);

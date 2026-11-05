@@ -1,4 +1,5 @@
 #pragma once
+#include "DxLib.h"
 
 enum InputKey
 {
@@ -6,7 +7,7 @@ enum InputKey
 	KEY_S = (1 << 1),
 	KEY_A = (1 << 2),
 	KEY_D = (1 << 3),
-	KEY_LCLICK = (1 << 4),
+	MOUSE_LEFT = (1 << 4),
 };
 
 void InitInput();
@@ -16,3 +17,5 @@ void FinInput();
 
 bool IsInputKey(InputKey key);
 bool IsTriggerKey(InputKey key);
+
+VECTOR GetMousePosition();

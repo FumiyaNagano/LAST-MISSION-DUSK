@@ -2,7 +2,7 @@
 #include "../../Player/Player.h"
 #include "../../BackGround/BackGround.h"
 #include "../../Scene/SceneManager.h"
-// #include "../../Bullet/BulletManager.h"
+#include "../../Bullet/BulletManager.h"
 // #include "../../Enemy/EnemyManager.h"
 // #include "../../Sound/SoundManager.h"
 // #include "../../Collision/Collision.h"
@@ -22,6 +22,8 @@ void InitPlayScene()
 
 	InitPlayer();
 
+	InitBullet();
+
 	InitBlock();
 }
 
@@ -30,6 +32,8 @@ void LoadPlayScene()
 	LoadBackGround("Data/BackGround/The1stOriginalGameBG.png", BACK_GROUND_LAYER_3);
 
 	LoadPlayer();
+
+	LoadBullet();
 
 	LoadBlock();
 
@@ -57,6 +61,8 @@ void UpdatePlayScene()
 	UpdateBackGround();
 
 	UpdatePlayer();
+
+	UpdateBullet();
 }
 
 void DrawPlayScene()
@@ -66,6 +72,8 @@ void DrawPlayScene()
 	DrawBlock();
 
 	DrawPlayer();
+
+	DrawBullet();
 }
 
 void FinPlayScene()
@@ -73,6 +81,8 @@ void FinPlayScene()
 	FinBackGround();
 
 	FinPlayer();
+
+	FinBullet();
 
 	FinBlock();
 }

@@ -38,30 +38,7 @@ void StepBackGround()
 
 void UpdateBackGround()
 {
-	// 移動
-	for (int i = 0; i < BACK_GROUND_LAYER_MAX; i++)
-	{
-		g_BackGroundData[i].posX += g_BackGroundData[i].moveX;
-		g_BackGroundData[i].posY += g_BackGroundData[i].moveY;
-
-		// スクロールのループ
-		if (g_BackGroundData[i].posX > BACK_GROUND_WIDTH)
-		{
-			g_BackGroundData[i].posX -= BACK_GROUND_WIDTH;
-		}
-		if (g_BackGroundData[i].posX < -BACK_GROUND_WIDTH)
-		{
-			g_BackGroundData[i].posX += BACK_GROUND_WIDTH;
-		}
-		if (g_BackGroundData[i].posY > BACK_GROUND_HEIGHT)
-		{
-			g_BackGroundData[i].posY -= BACK_GROUND_HEIGHT;
-		}
-		if (g_BackGroundData[i].posY < -BACK_GROUND_HEIGHT)
-		{
-			g_BackGroundData[i].posY += BACK_GROUND_HEIGHT;
-		}
-	}
+	
 }
 
 void DrawBackGround()
@@ -69,27 +46,6 @@ void DrawBackGround()
 	for (int i = 0; i < BACK_GROUND_LAYER_MAX; i++)
 	{
 		DrawGraph((int)g_BackGroundData[i].posX, (int)g_BackGroundData[i].posY, (int)g_BackGroundData[i].handle, TRUE);
-
-		// 左にスクロールしていたら右側にもう一枚描画
-		if (g_BackGroundData[i].moveX < 0.0f)
-		{
-			DrawGraph((int)g_BackGroundData[i].posX + BACK_GROUND_WIDTH, (int)g_BackGroundData[i].posY, (int)g_BackGroundData[i].handle, TRUE);
-		}
-		// 右にスクロールしていたら左側にもう一枚描画
-		if (g_BackGroundData[i].moveX > 0.0f)
-		{
-			DrawGraph((int)g_BackGroundData[i].posX - BACK_GROUND_WIDTH, (int)g_BackGroundData[i].posY, (int)g_BackGroundData[i].handle, TRUE);
-		}
-		// 上にスクロールしていたら下側にもう一枚描画
-		if (g_BackGroundData[i].moveY > 0.0f)
-		{
-			DrawGraph((int)g_BackGroundData[i].posX, (int)g_BackGroundData[i].posY - BACK_GROUND_HEIGHT, (int)g_BackGroundData[i].handle, TRUE);
-		}
-		// 下にスクロールしていたら上側にもう一枚描画
-		if (g_BackGroundData[i].moveY < 0.0f)
-		{
-			DrawGraph((int)g_BackGroundData[i].posX, (int)g_BackGroundData[i].posY + BACK_GROUND_HEIGHT, (int)g_BackGroundData[i].handle, TRUE);
-		}
 	}
 }
 

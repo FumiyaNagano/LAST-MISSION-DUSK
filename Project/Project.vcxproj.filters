@@ -37,6 +37,9 @@
     <Filter Include="Source\Map">
       <UniqueIdentifier>{137dc320-f148-4e83-ba2e-0209e3d1dbf1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Bullet">
+      <UniqueIdentifier>{63f8540e-0027-4ecb-9b97-73dd25d964cc}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\BackGround\BackGround.cpp">
@@ -74,6 +77,9 @@
     </ClCompile>
     <ClCompile Include="Source\Map\MapChip.cpp">
       <Filter>Source\Map</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Bullet\Bullet.cpp">
+      <Filter>Source\Bullet</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -115,6 +121,12 @@
     </ClInclude>
     <ClInclude Include="Source\Map\MapChip.h">
       <Filter>Source\Map</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Bullet\Bullet.h">
+      <Filter>Source\Bullet</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Bullet\BulletManager.h">
+      <Filter>Source\Bullet</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
