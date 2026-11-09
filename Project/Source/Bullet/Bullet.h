@@ -17,7 +17,9 @@ struct BulletData
 	bool active;
 	BulletOwner owner;
 	VECTOR pos;
+	VECTOR prevPos;
 	VECTOR velocity;
 	float life;
 	float radius;
+	int damage;
 };

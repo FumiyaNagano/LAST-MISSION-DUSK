@@ -63,6 +63,8 @@ void UpdatePlayScene()
 	UpdatePlayer();
 
 	UpdateBullet();
+
+	PlayerHitEnemyBullet();
 }
 
 void DrawPlayScene()

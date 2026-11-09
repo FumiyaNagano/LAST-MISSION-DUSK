@@ -39,6 +39,8 @@ void UpdateBullet()
 		BulletData* b = &g_BulletData[i];
 		if (!b->active) continue;
 
+		b->prevPos = b->pos;
+
 		// このフレームの移動量を、小さな区間に分けて進める
 		VECTOR move = VScale(b->velocity, dt);
 		int steps = (int)ceilf(VSize(move) / BULLET_STEP_MAX_DISTANCE);
@@ -111,7 +113,7 @@ void FinBullet()
 	}
 }
 
-void FireBullet(BulletOwner owner, VECTOR pos, VECTOR dir, float speed, float life, float radius)
+void FireBullet(BulletOwner owner, VECTOR pos, VECTOR dir, float speed, float life, float radius, int damage)
 {
 	// 空いている枠を探して使う（全部埋まっていたら発射しない）
 	for (int i = 0; i < BULLET_MAX; i++)
@@ -122,9 +124,11 @@ void FireBullet(BulletOwner owner, VECTOR pos, VECTOR dir, float speed, float li
 		b->active = true;
 		b->owner = owner;
 		b->pos = pos;
+		b->prevPos = pos;
 		b->velocity = VScale(dir, speed);
 		b->life = life;
 		b->radius = radius;
+		b->damage = damage;
 		return;
 	}
 }

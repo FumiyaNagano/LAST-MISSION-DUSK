@@ -1,8 +1,10 @@
 #include "DxLib.h"
 #include "GameSetting/GameSetting.h"
 #include "FPS/FPS.h"
+#include "Player/Player.h"
 #include "Input/Input.h"
 #include "Scene/SceneManager.h"
+#include "Sound/SoundManager.h"
 #include "UIImage/UIText.h"
 #include "BackGround/BackGround.h"
 
@@ -33,6 +35,8 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 	// 入力システム初期化
 	InitInput();
 
+	LoadSound();
+
 	// UIはゲーム起動と同時に初期化、ロード
 	//InitUIText();
 
@@ -40,10 +44,6 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 
 	while (ProcessMessage() >= 0)
 	{
-		ClearDrawScreen();
-
-		Sleep(1);
-
 		if (CheckHitKey(KEY_INPUT_ESCAPE)) break;
 
 		// FPS制御を更新
@@ -59,6 +59,12 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 		// FPS値描画
 		DrawFPS();
 
+		// デバッグ用
+		DrawFormatString(0, 60, GetColor(255, 255, 255), "HP: %d  inv: %.2f",
+			GetPlayer()->hp, GetPlayer()->invincibleTimer);
+
+
+
 		// 画面フリップ
 		ScreenFlip();
 
@@ -68,6 +74,8 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 
 	// 入力システム終了
 	FinInput();
+
+	FinSound();
 
 	// UI終了
 	//FinUIText();

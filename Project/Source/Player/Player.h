@@ -1,5 +1,6 @@
 #pragma once
 #include "DxLib.h"
+#include "../Sound/SoundManager.h"
 #include "../UIImage/UIText.h"
 
 #define PLAYER_WIDTH	(46.0f)
@@ -9,6 +10,30 @@
 // プレイヤーのアニメーション
 #define PLAYER_ANIM_FRAME_MAX (16)
 
+// 武器関連
+enum WeaponType
+{
+	WEAPON_PISTOL,
+	WEAPON_MACHINEGUN,
+	WEAPON_NUM,
+};
+
+enum FireMode
+{
+	FIRE_MODE_SEMI,
+	FIRE_MODE_AUTO,
+};
+
+struct WeaponDef
+{
+	FireMode mode;
+	float interval;
+	float bulletSpeed;
+	float bulletLife;
+	float bulletRadius;
+	int damage;
+	SEType shotSE;
+};
 enum PlayerState
 {
 	PLAYER_STATE_IDLE,
@@ -44,13 +69,15 @@ struct PlayerAnimData
 struct PlayerData
 {
 	bool active;
-	//int bulletIntervalTimer;
+	float bulletIntervalTimer;
+	float invincibleTimer;
 	int hp;
 	float shootTimer; // 射撃アニメーションを表示する残り時間（秒）
 	VECTOR pos;
 	VECTOR move; // 移動速度（ピクセル/秒）
 	VECTOR aimDir; // 狙う方向（長さ1）
 	UITextData* hpText;
+	WeaponType weapon;
 
 	// アニメーション用
 	PlayerState state;
@@ -67,6 +94,7 @@ void StepPlayer();
 void UpdatePlayer();
 void DrawPlayer();
 void FinPlayer();
+void PlayerDead();
 
 // 取得関数
 PlayerData* GetPlayer();

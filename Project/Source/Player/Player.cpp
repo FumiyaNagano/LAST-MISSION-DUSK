@@ -1,15 +1,13 @@
-// DxLib, Visual Studio 2022でゲーム制作を行っています。プレイヤーが描画されない原因を特定してほしいです。まずPlayer.cppを貼ります。他にスクリプトが必要であれば教えてください。
-
 #include "DxLib.h"
 #include "Player.h"
 #include "../FPS/FPS.h"
 #include "../Input/Input.h"
-//#include "../Collision/Collision.h"
+#include "../Collision/Collision.h"
 //#include "../Score/Score.h"
 //#include "../Effect/AnimationEffect.h"
 #include "../Bullet/BulletManager.h"
 //#include "../Scene/SceneManager.h"
-//#include "../Sound/SoundManager.h"
+#include "../Sound/SoundManager.h"
 #include "../Map/Block.h"
 #include <math.h>
 
@@ -19,12 +17,13 @@
 // プレイヤー設定関連
 #define PLAYER_DEFAULT_POS_X (100.0f)
 #define PLAYER_DEFAULT_POS_Y (300.0f)
+#define PLAYER_INVINCIBLE_TIME (1.0f)
 // 1秒あたりの移動速度（ピクセル/秒）
 #define PLAYER_MOVE_SPEED (240.0f)
 // 射撃アニメーションを表示する残り時間（秒）
 #define PLAYER_SHOOT_ANIM_TIME (0.2f)
 
-// 弾関連
+// 弾・武器関連
 #define PLAYER_DEFAULT_SHOT_SPEED		(1200.0f)
 #define PLAYER_SHOT_LIFE				(10.0f)
 #define PLAYER_SHOT_OFFSET_X			(50.0f)
@@ -34,6 +33,13 @@
 #define PLAYER_SHOT_OFFSET_UP_X			(2.0f)	// 体の中心からの左右のずれ（右向き）
 #define PLAYER_SHOT_OFFSET_UP_Y			(20.0f)
 #define PLAYER_SHOT_MIN_AIM_DISTANCE	(10.0f)
+
+static const WeaponDef g_WeaponDefs[WEAPON_NUM] =
+{
+	// {モード, 間隔, 弾速, 寿命, 半径, SE}
+	{FIRE_MODE_SEMI, 0.00f, 1200.0f, 10.0f, 6.0f, SE_PLAYER_SHOT},
+	{FIRE_MODE_AUTO, 0.08f, 1400.0f, 10.0f, 5.0f, SE_PLAYER_SHOT},
+};
 
 // 移動可能エリア
 #define PLAYER_MOVE_AREA_LEFT	(0.0f)
@@ -134,13 +140,14 @@ void InitPlayer()
 	g_PlayerData.pos = VGet(PLAYER_DEFAULT_POS_X, PLAYER_DEFAULT_POS_Y, 0.0f);
 	g_PlayerData.move = VGet(0.0f, 0.0f, 0.0f);
 	g_PlayerData.hpText = nullptr;
-	//g_PlayerData.bulletIntervalTimer = 0;
+	g_PlayerData.bulletIntervalTimer = 0.0f;
 	g_PlayerData.state = PLAYER_STATE_IDLE;
 	g_PlayerData.animFrame = 0;
 	g_PlayerData.animTimer = 0.0f;
 	g_PlayerData.active = false;
 	g_PlayerData.aimDir = VGet(1.0f, 0.0f, 0.0f);
 	g_PlayerData.shootTimer = 0.0f;
+	g_PlayerData.weapon = WEAPON_PISTOL;
 	g_PlayerData.facingLeft = false;
 }
 
@@ -214,16 +221,17 @@ static void FirePlayerBullet(bool shootUp)
 		dir = VNorm(dir);
 	}
 
-	FireBullet(BULLET_OWNER_PLAYER, muzzle, dir, PLAYER_DEFAULT_SHOT_SPEED, PLAYER_SHOT_LIFE, PLAYER_BULLET_RADIUS);
+	const WeaponDef* weapon = &g_WeaponDefs[g_PlayerData.weapon];
+
+	//FireBullet(BULLET_OWNER_PLAYER, muzzle, dir, PLAYER_DEFAULT_SHOT_SPEED, PLAYER_SHOT_LIFE, PLAYER_BULLET_RADIUS);
+	FireBullet(BULLET_OWNER_PLAYER, muzzle, dir, weapon->bulletSpeed, weapon->bulletLife, weapon->bulletRadius, weapon->damage);
+
+	// 発射SE
+	PlaySE(weapon->shotSE);
 }
 
 void StepPlayer()
 {
-	/*if (g_PlayerData.bulletIntervalTimer > 0.0f)
-	{
-		g_PlayerData.bulletIntervalTimer -= GetDeltaTime();
-	}*/
-
 	if (!g_PlayerData.active)
 	{
 		g_PlayerData.move = VGet(0.0f, 0.0f, 0.0f);
@@ -268,9 +276,27 @@ void StepPlayer()
 	}
 
 	// 射撃
-	bool fired = IsTriggerKey(MOUSE_LEFT);
+	const WeaponDef* weapon = &g_WeaponDefs[g_PlayerData.weapon];
+
+	// 発射間隔タイマーを進める
+	g_PlayerData.bulletIntervalTimer -= GetDeltaTime();
+
+	// 連射武器は押している間、単発武器は押した瞬間だけ
+	bool trigger = (weapon->mode == FIRE_MODE_AUTO)
+		? IsInputKey(MOUSE_LEFT)
+		: IsTriggerKey(MOUSE_LEFT);
+
+	// ボタンを押していない時は、タイマーを0以下に溜めない（次の1発目がすぐに出る）
+	if (!trigger && g_PlayerData.bulletIntervalTimer < 0.0f)
+	{
+		g_PlayerData.bulletIntervalTimer = 0.0f;
+	}
+
+	bool fired = trigger && (g_PlayerData.bulletIntervalTimer <= 0.0f);
 	if (fired)
 	{
+		// 0に戻さず加算して、フレームの端数を持ち越す（連射速度がFPSに左右されにくい）
+		g_PlayerData.bulletIntervalTimer += weapon->interval;
 		g_PlayerData.shootTimer = PLAYER_SHOOT_ANIM_TIME;
 	}
 
@@ -293,12 +319,32 @@ void StepPlayer()
 		}
 	}
 
+	// デバッグ: Kキーで敵の弾を発射（確認後に削除）
+	static bool prevK = false;
+	bool nowK = (CheckHitKey(KEY_INPUT_K) != 0);
+	if (nowK && !prevK)
+	{
+		FireBullet(BULLET_OWNER_ENEMY, VGet(1800.0f, g_PlayerData.pos.y + 50.0f, 0.0f),
+			VGet(-1.0f, 0.0f, 0.0f), 600.0f, 10.0f, 8.0f, 10);
+	}
+	prevK = nowK;
+
 	SetPlayerState(nextState);
 }
 
 void UpdatePlayer()
 {
 	if (!g_PlayerData.active) return;
+
+	// 無敵時間を減らす
+	if (g_PlayerData.invincibleTimer > 0.0f)
+	{
+		g_PlayerData.invincibleTimer -= GetDeltaTime();
+		if (g_PlayerData.invincibleTimer < 0.0f)
+		{
+			g_PlayerData.invincibleTimer = 0.0f;
+		}
+	}
 
 	UpdatePlayerAnim();
 
@@ -335,6 +381,12 @@ void UpdatePlayer()
 void DrawPlayer()
 {
 	if (!g_PlayerData.active) return;
+
+	// 無敵中は0.1秒ごとに表示と非表示を切り替えて点滅させる
+	if (g_PlayerData.invincibleTimer > 0.0f)
+	{
+		if (((int)(g_PlayerData.invincibleTimer / 0.1f)) % 2 == 0) return;
+	}
 
 	PlayerAnimData* anim = &g_PlayerAnim[g_PlayerData.state];
 	if (anim->frameNum <= 0) return;
@@ -380,6 +432,45 @@ void FinPlayer()
 PlayerData* GetPlayer()
 {
 	return &g_PlayerData;
+}
+
+void PlayerHitEnemy()
+{
+	// TODO: 敵の実装時に、敵の矩形との接触判定とダメージ処理を書く
+}
+
+void PlayerHitEnemyBullet()
+{
+	if (!g_PlayerData.active) return;
+	if (g_PlayerData.invincibleTimer > 0.0f) return;	// 無敵時間中は当たらない
+
+	for (int i = 0; i < BULLET_MAX; i++)
+	{
+		BulletData* b = GetBullet(i);
+		if (b == nullptr || !b->active) continue;
+		if (b->owner != BULLET_OWNER_ENEMY) continue;
+
+		// 弾が前フレームから進んだ線分と、プレイヤーの矩形で判定
+		if (!CheckSegmentRect(b->prevPos, b->pos, b->radius, g_PlayerData.pos.x, g_PlayerData.pos.y, PLAYER_WIDTH, PLAYER_HEIGHT))
+		{
+			continue;
+		}
+
+		b->active = false;
+		g_PlayerData.hp -= b->damage;
+
+		if (g_PlayerData.hp <= 0)
+		{
+			g_PlayerData.hp = 0;
+			PlayerDead();
+		}
+		else
+		{
+			g_PlayerData.invincibleTimer = PLAYER_INVINCIBLE_TIME;
+		}
+
+		break;	// 1フレームで受けるのは1発まで
+	}
 }
 
 void PlayerDead()
