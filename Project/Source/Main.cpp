@@ -63,7 +63,25 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 		DrawFormatString(0, 60, GetColor(255, 255, 255), "HP: %d  inv: %.2f",
 			GetPlayer()->hp, GetPlayer()->invincibleTimer);
 
+		const WeaponState* g = &GetPlayer()->gun;
+		if (g->reserve == WEAPON_AMMO_INFINITE)
+		{
+			DrawFormatString(0, 140, GetColor(255, 255, 255), "AMMO: %d / INF", g->magazine);
+		}
+		else
+		{
+			DrawFormatString(0, 140, GetColor(255, 255, 255), "AMMO: %d / %d", g->magazine, g->reserve);
+		}
 
+		if (WeaponIsReloading(g))
+		{
+			DrawFormatString(0, 160, GetColor(255, 255, 0), "RELOADING %.0f%%", WeaponReloadProgress(g) * 100.0f);
+		}
+
+
+
+		// 画面フリップ
+		ScreenFlip();
 
 		// 画面フリップ
 		ScreenFlip();

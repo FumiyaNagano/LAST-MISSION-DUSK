@@ -1,11 +1,14 @@
 #include "DxLib.h"
 #include "Player.h"
+#include "../Enemy/Enemy.h"
+#include "../Enemy/EnemyManager.h"
 #include "../FPS/FPS.h"
 #include "../Input/Input.h"
 #include "../Collision/Collision.h"
 //#include "../Score/Score.h"
 //#include "../Effect/AnimationEffect.h"
 #include "../Bullet/BulletManager.h"
+#include "../Weapon/Weapon.h"
 //#include "../Scene/SceneManager.h"
 #include "../Sound/SoundManager.h"
 #include "../Map/Block.h"
@@ -33,13 +36,6 @@
 #define PLAYER_SHOT_OFFSET_UP_X			(2.0f)	// 体の中心からの左右のずれ（右向き）
 #define PLAYER_SHOT_OFFSET_UP_Y			(20.0f)
 #define PLAYER_SHOT_MIN_AIM_DISTANCE	(10.0f)
-
-static const WeaponDef g_WeaponDefs[WEAPON_NUM] =
-{
-	// {モード, 間隔, 弾速, 寿命, 半径, SE}
-	{FIRE_MODE_SEMI, 0.00f, 1200.0f, 10.0f, 6.0f, SE_PLAYER_SHOT},
-	{FIRE_MODE_AUTO, 0.08f, 1400.0f, 10.0f, 5.0f, SE_PLAYER_SHOT},
-};
 
 // 移動可能エリア
 #define PLAYER_MOVE_AREA_LEFT	(0.0f)
@@ -140,15 +136,15 @@ void InitPlayer()
 	g_PlayerData.pos = VGet(PLAYER_DEFAULT_POS_X, PLAYER_DEFAULT_POS_Y, 0.0f);
 	g_PlayerData.move = VGet(0.0f, 0.0f, 0.0f);
 	g_PlayerData.hpText = nullptr;
-	g_PlayerData.bulletIntervalTimer = 0.0f;
 	g_PlayerData.state = PLAYER_STATE_IDLE;
 	g_PlayerData.animFrame = 0;
 	g_PlayerData.animTimer = 0.0f;
 	g_PlayerData.active = false;
 	g_PlayerData.aimDir = VGet(1.0f, 0.0f, 0.0f);
 	g_PlayerData.shootTimer = 0.0f;
-	g_PlayerData.weapon = WEAPON_PISTOL;
+	WeaponStateInitFull(&g_PlayerData.gun, WEAPON_DEFAULT);
 	g_PlayerData.facingLeft = false;
+	WeaponStateInitFull(&g_PlayerData.gun, WEAPON_DEFAULT);
 }
 
 void LoadPlayer()
@@ -180,6 +176,9 @@ void StartPlayer()
 	// HPの初期値設定
 	g_PlayerData.hp = PLAYER_HP;
 
+	WeaponStateInitFull(&g_PlayerData.gun, WEAPON_DEFAULT);
+	PlayerEquipWeapon(WEAPON_MACHINEGUN, 30, 90);	// 確認用（拾う処理ができたら削除）
+
 	// アニメーションを初期状態に戻す
 	g_PlayerData.state = PLAYER_STATE_IDLE;
 	g_PlayerData.animFrame = 0;
@@ -189,6 +188,8 @@ void StartPlayer()
 	//char text[256];
 	//sprintf_s(text, PLAYER_HP_STRING, g_PlayerData.hp);
 	//g_PlayerData.hpText = CreateUIText(60.0f, 900.0f, text);
+
+	PlayerEquipWeapon(WEAPON_MACHINEGUN, 30, 90); // 確認用（拾う処理ができたら削除）
 }
 
 // プレイヤーの弾を1発撃つ（shootUp: 上向き射撃のアニメーションか）
@@ -221,7 +222,7 @@ static void FirePlayerBullet(bool shootUp)
 		dir = VNorm(dir);
 	}
 
-	const WeaponDef* weapon = &g_WeaponDefs[g_PlayerData.weapon];
+	const WeaponDef* weapon = GetWeaponDef(g_PlayerData.gun.type);
 
 	//FireBullet(BULLET_OWNER_PLAYER, muzzle, dir, PLAYER_DEFAULT_SHOT_SPEED, PLAYER_SHOT_LIFE, PLAYER_BULLET_RADIUS);
 	FireBullet(BULLET_OWNER_PLAYER, muzzle, dir, weapon->bulletSpeed, weapon->bulletLife, weapon->bulletRadius, weapon->damage);
@@ -276,27 +277,26 @@ void StepPlayer()
 	}
 
 	// 射撃
-	const WeaponDef* weapon = &g_WeaponDefs[g_PlayerData.weapon];
+	const WeaponDef* weapon = GetWeaponDef(g_PlayerData.gun.type);
 
-	// 発射間隔タイマーを進める
-	g_PlayerData.bulletIntervalTimer -= GetDeltaTime();
+	// 発射間隔・リロードを進める
+	WeaponUpdate(&g_PlayerData.gun, GetDeltaTime());
+
+	// 手動リロード（Rキー）
+	if (CheckHitKey(KEY_INPUT_R))
+	{
+		WeaponStartReload(&g_PlayerData.gun);
+	}
 
 	// 連射武器は押している間、単発武器は押した瞬間だけ
 	bool trigger = (weapon->mode == FIRE_MODE_AUTO)
 		? IsInputKey(MOUSE_LEFT)
 		: IsTriggerKey(MOUSE_LEFT);
 
-	// ボタンを押していない時は、タイマーを0以下に溜めない（次の1発目がすぐに出る）
-	if (!trigger && g_PlayerData.bulletIntervalTimer < 0.0f)
-	{
-		g_PlayerData.bulletIntervalTimer = 0.0f;
-	}
-
-	bool fired = trigger && (g_PlayerData.bulletIntervalTimer <= 0.0f);
+	// 撃てる状態なら弾を1発消費する
+	bool fired = trigger && WeaponTryFire(&g_PlayerData.gun);
 	if (fired)
 	{
-		// 0に戻さず加算して、フレームの端数を持ち越す（連射速度がFPSに左右されにくい）
-		g_PlayerData.bulletIntervalTimer += weapon->interval;
 		g_PlayerData.shootTimer = PLAYER_SHOOT_ANIM_TIME;
 	}
 
@@ -316,6 +316,12 @@ void StepPlayer()
 		if (fired)
 		{
 			FirePlayerBullet(shootUp);
+
+			// 弾倉も予備弾も撃ち切ったら予備武器に戻る
+			if (WeaponIsOutOfAmmo(&g_PlayerData.gun))
+			{
+				WeaponStateInitFull(&g_PlayerData.gun, WEAPON_DEFAULT);
+			}
 		}
 	}
 
@@ -436,7 +442,19 @@ PlayerData* GetPlayer()
 
 void PlayerHitEnemy()
 {
-	// TODO: 敵の実装時に、敵の矩形との接触判定とダメージ処理を書く
+	if (!g_PlayerData.active) return;
+
+	for (int i = 0; i < ENEMY_MAX; i++)
+	{
+		EnemyData* e = GetEnemy(i);
+		if (e == nullptr || !e->active) continue;
+
+		if (CheckRectRect(g_PlayerData.pos.x, g_PlayerData.pos.y, PLAYER_WIDTH, PLAYER_HEIGHT, e->pos.x, e->pos.y, e->width, e->height))
+		{
+			PlayerTakeDamage(e->contactDamage);
+			break;
+		}
+	}
 }
 
 void PlayerHitEnemyBullet()
@@ -457,19 +475,39 @@ void PlayerHitEnemyBullet()
 		}
 
 		b->active = false;
-		g_PlayerData.hp -= b->damage;
 
-		if (g_PlayerData.hp <= 0)
-		{
-			g_PlayerData.hp = 0;
-			PlayerDead();
-		}
-		else
-		{
-			g_PlayerData.invincibleTimer = PLAYER_INVINCIBLE_TIME;
-		}
+		PlayerTakeDamage(b->damage);
 
 		break;	// 1フレームで受けるのは1発まで
+	}
+}
+
+void PlayerTakeDamage(int damage)
+{
+	if (!g_PlayerData.active) return;
+	if (g_PlayerData.invincibleTimer > 0.0f) return; // 無敵中は無効
+
+	g_PlayerData.hp -= damage;
+
+	if (g_PlayerData.hp <= 0)
+	{
+		g_PlayerData.hp = 0;
+		PlayerDead();
+	}
+	else
+	{
+		g_PlayerData.invincibleTimer = PLAYER_INVINCIBLE_TIME;
+	}
+}
+
+void PlayerEquipWeapon(WeaponType type, int magazine, int reserve)
+{
+	WeaponStateInit(&g_PlayerData.gun, type, magazine, reserve);
+
+	// 弾倉も予備弾も空の武器は装備せず、予備武器にする
+	if (WeaponIsOutOfAmmo(&g_PlayerData.gun))
+	{
+		WeaponStateInitFull(&g_PlayerData.gun, WEAPON_DEFAULT);
 	}
 }
 

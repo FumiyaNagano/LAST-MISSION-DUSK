@@ -3,7 +3,7 @@
 #include "../../BackGround/BackGround.h"
 #include "../../Scene/SceneManager.h"
 #include "../../Bullet/BulletManager.h"
-// #include "../../Enemy/EnemyManager.h"
+#include "../../Enemy/EnemyManager.h"
 // #include "../../Sound/SoundManager.h"
 // #include "../../Collision/Collision.h"
 // #include "../../Effect/Effect.h"
@@ -22,6 +22,8 @@ void InitPlayScene()
 
 	InitPlayer();
 
+	InitEnemy();
+
 	InitBullet();
 
 	InitBlock();
@@ -33,6 +35,8 @@ void LoadPlayScene()
 
 	LoadPlayer();
 
+	LoadEnemy();
+
 	LoadBullet();
 
 	LoadBlock();
@@ -43,6 +47,8 @@ void LoadPlayScene()
 void StartPlayScene()
 {
 	StartPlayer();
+
+	StartEnemy();
 
 	CreateMap();
 }
@@ -62,9 +68,15 @@ void UpdatePlayScene()
 
 	UpdatePlayer();
 
+	UpdateEnemy();
+
 	UpdateBullet();
 
 	PlayerHitEnemyBullet();
+
+	EnemyHitPlayerBullet();
+
+	PlayerHitEnemy();
 }
 
 void DrawPlayScene()
@@ -75,6 +87,8 @@ void DrawPlayScene()
 
 	DrawPlayer();
 
+	DrawEnemy();
+
 	DrawBullet();
 }
 
@@ -83,6 +97,8 @@ void FinPlayScene()
 	FinBackGround();
 
 	FinPlayer();
+
+	FinEnemy();
 
 	FinBullet();
 
