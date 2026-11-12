@@ -2,9 +2,13 @@
 
 static const WeaponDef g_WeaponDefs[WEAPON_NUM] =
 {
-	//  モード            間隔   弾速     寿命   半径  ダメ 弾倉 予備弾                 リロード SE
-	{ FIRE_MODE_SEMI, 0.25f, 1200.0f, 10.0f, 6.0f, 10, 12, WEAPON_AMMO_INFINITE, 1.0f, SE_PLAYER_SHOT },	// ピストル（予備）
-	{ FIRE_MODE_AUTO, 0.08f, 1400.0f, 10.0f, 5.0f,  4, 30, 90,                  2.0f, SE_PLAYER_SHOT },	// マシンガン
+	//  名前         モード            間隔          弾速     寿命   半径  ダメ 弾倉 予備弾                  リロード SE
+	{ "Pistol",    FIRE_MODE_SEMI, 0.25f,        1200.0f, 10.0f, 6.0f, 10,  12,  WEAPON_AMMO_INFINITE, 1.0f, SE_PLAYER_SHOT },	// 予備武器
+	{ "Kar98k",    FIRE_MODE_SEMI, 1.0f,         1400.0f, 10.0f, 5.0f,  5,   5,  45,                   2.0f, SE_PLAYER_SHOT },	// 5発 x 10個
+	{ "M1 Garand", FIRE_MODE_SEMI, 0.3f,         1300.0f, 10.0f, 5.0f,  5,   8,  72,                   3.0f, SE_PLAYER_SHOT },	// 8発 x 10個
+	{ "MP5",       FIRE_MODE_AUTO, 1.0f / 13.0f,  900.0f, 10.0f, 4.0f,  3,  30, 120,                   2.0f, SE_PLAYER_SHOT },	// 30発 x 5個、13発/秒
+	{ "M4A1",      FIRE_MODE_AUTO, 1.0f / 11.0f, 1000.0f, 10.0f, 5.0f,  4,  30, 120,                   3.0f, SE_PLAYER_SHOT },	// 30発 x 5個、11発/秒
+	{ "XM250",     FIRE_MODE_AUTO, 0.1f,         1100.0f, 10.0f, 6.0f,  7, 100, 200,                   5.0f, SE_PLAYER_SHOT },	// 100発 x 3個、10発/秒
 };
 
 const WeaponDef* GetWeaponDef(WeaponType type)

@@ -139,6 +139,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Animation\Animation.cpp" />
     <ClCompile Include="Source\BackGround\BackGround.cpp" />
     <ClCompile Include="Source\Bullet\Bullet.cpp" />
     <ClCompile Include="Source\Collision\Collision.cpp" />
@@ -158,6 +159,7 @@
     <ClCompile Include="Source\Weapon\Weapon.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Animation\Animation.h" />
     <ClInclude Include="Source\BackGround\BackGround.h" />
     <ClInclude Include="Source\Bullet\Bullet.h" />
     <ClInclude Include="Source\Bullet\BulletManager.h" />

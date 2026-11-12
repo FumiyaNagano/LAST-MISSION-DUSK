@@ -52,6 +52,9 @@
     <Filter Include="Source\Weapon">
       <UniqueIdentifier>{c362dbac-2775-46cd-92b9-71ccb5f1d432}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Animation">
+      <UniqueIdentifier>{c2e6581a-aa6b-4449-bf37-1760ea4dd7cb}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\BackGround\BackGround.cpp">
@@ -104,6 +107,9 @@
     </ClCompile>
     <ClCompile Include="Source\Weapon\Weapon.cpp">
       <Filter>Source\Weapon</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Animation\Animation.cpp">
+      <Filter>Source\Animation</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -166,6 +172,9 @@
     </ClInclude>
     <ClInclude Include="Source\Weapon\Weapon.h">
       <Filter>Source\Weapon</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Animation\Animation.h">
+      <Filter>Source\Animation</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

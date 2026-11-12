@@ -177,7 +177,7 @@ void StartPlayer()
 	g_PlayerData.hp = PLAYER_HP;
 
 	WeaponStateInitFull(&g_PlayerData.gun, WEAPON_DEFAULT);
-	PlayerEquipWeapon(WEAPON_MACHINEGUN, 30, 90);	// 確認用（拾う処理ができたら削除）
+	PlayerEquipWeapon(WEAPON_MP5, 30, 90);	// 確認用（拾う処理ができたら削除）
 
 	// アニメーションを初期状態に戻す
 	g_PlayerData.state = PLAYER_STATE_IDLE;
@@ -189,7 +189,7 @@ void StartPlayer()
 	//sprintf_s(text, PLAYER_HP_STRING, g_PlayerData.hp);
 	//g_PlayerData.hpText = CreateUIText(60.0f, 900.0f, text);
 
-	PlayerEquipWeapon(WEAPON_MACHINEGUN, 30, 90); // 確認用（拾う処理ができたら削除）
+	PlayerEquipWeapon(WEAPON_MP5, 30, 90); // 確認用（拾う処理ができたら削除）
 }
 
 // プレイヤーの弾を1発撃つ（shootUp: 上向き射撃のアニメーションか）

@@ -42,6 +42,8 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 
 	InitFPS();
 
+	float s_updateMs = 0.0f, s_flipMs = 0.0f, s_waitMs = 0.0f;
+
 	while (ProcessMessage() >= 0)
 	{
 		if (CheckHitKey(KEY_INPUT_ESCAPE)) break;
@@ -77,11 +79,6 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 		{
 			DrawFormatString(0, 160, GetColor(255, 255, 0), "RELOADING %.0f%%", WeaponReloadProgress(g) * 100.0f);
 		}
-
-
-
-		// 画面フリップ
-		ScreenFlip();
 
 		// 画面フリップ
 		ScreenFlip();
