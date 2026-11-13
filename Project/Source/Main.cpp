@@ -2,6 +2,7 @@
 #include "GameSetting/GameSetting.h"
 #include "FPS/FPS.h"
 #include "Player/Player.h"
+#include "Weapon/WeaponDrop.h"
 #include "Input/Input.h"
 #include "Scene/SceneManager.h"
 #include "Sound/SoundManager.h"
@@ -64,7 +65,12 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 		// デバッグ用
 		DrawFormatString(0, 60, GetColor(255, 255, 255), "HP: %d  inv: %.2f",
 			GetPlayer()->hp, GetPlayer()->invincibleTimer);
-
+		int dropCount = 0;
+		for (int i = 0; i < WEAPON_DROP_MAX; i++)
+		{
+			if (GetWeaponDrop(i)->active) dropCount++;
+		}
+		DrawFormatString(0, 220, GetColor(255, 255, 0), "drops: %d", dropCount);
 		const WeaponState* g = &GetPlayer()->gun;
 		if (g->reserve == WEAPON_AMMO_INFINITE)
 		{

@@ -9,6 +9,7 @@
 //#include "../Effect/AnimationEffect.h"
 #include "../Bullet/BulletManager.h"
 #include "../Weapon/Weapon.h"
+#include "../Weapon/WeaponDrop.h"
 //#include "../Scene/SceneManager.h"
 #include "../Sound/SoundManager.h"
 #include "../Map/Block.h"
@@ -334,6 +335,15 @@ void StepPlayer()
 			VGet(-1.0f, 0.0f, 0.0f), 600.0f, 10.0f, 8.0f, 10);
 	}
 	prevK = nowK;
+	// デバッグ: Gキーで武器をドロップ（確認後に削除）
+	static bool prevG = false;
+	bool nowG = (CheckHitKey(KEY_INPUT_G) != 0);
+	if (nowG && !prevG)
+	{
+		SpawnWeaponDrop(WEAPON_M1_GARAND, 8, 72,
+			VGet(g_PlayerData.pos.x + 250.0f, g_PlayerData.pos.y + 50.0f, 0.0f), true);
+	}
+	prevG = nowG;
 
 	SetPlayerState(nextState);
 }
@@ -509,6 +519,34 @@ void PlayerEquipWeapon(WeaponType type, int magazine, int reserve)
 	{
 		WeaponStateInitFull(&g_PlayerData.gun, WEAPON_DEFAULT);
 	}
+}
+
+bool PlayerPickupWeapon(WeaponType type, int magazine, int reserve)
+{
+	if (!g_PlayerData.active) return false;
+	WeaponState* g = &g_PlayerData.gun;
+
+	// 同じ武器：予備弾に足す（予備弾が満タンなら拾わない）
+	if (g->type == type)
+	{
+		const WeaponDef* def = GetWeaponDef(type);
+		if (def->reserveMax == WEAPON_AMMO_INFINITE) return false;
+		int space = def->reserveMax - g->reserve;
+		if (space <= 0) return false;
+		int add = magazine + reserve;
+		g->reserve += (add < space) ? add : space;
+		return true;
+	}
+
+	// 別の武器：今の武器をその場に捨てて（予備武器は捨てない）、拾った武器に持ち替える
+	if (WeaponCanDrop(g->type))
+	{
+		VECTOR center = VGet(g_PlayerData.pos.x + PLAYER_WIDTH * 0.5f,
+			g_PlayerData.pos.y + PLAYER_HEIGHT * 0.5f, 0.0f);
+		SpawnWeaponDrop(g->type, g->magazine, g->reserve, center, false);
+	}
+	PlayerEquipWeapon(type, magazine, reserve);
+	return true;
 }
 
 void PlayerDead()

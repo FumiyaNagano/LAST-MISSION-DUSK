@@ -111,6 +111,9 @@
     <ClCompile Include="Source\Animation\Animation.cpp">
       <Filter>Source\Animation</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Weapon\WeaponDrop.cpp">
+      <Filter>Source\Weapon</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\BackGround\BackGround.h">
@@ -175,6 +178,9 @@
     </ClInclude>
     <ClInclude Include="Source\Animation\Animation.h">
       <Filter>Source\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Weapon\WeaponDrop.h">
+      <Filter>Source\Weapon</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

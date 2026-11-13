@@ -84,3 +84,6 @@ void PlayerTakeDamage(int damage);
 
 // 武器を装備する
 void PlayerEquipWeapon(WeaponType type, int magazine, int reserve);
+
+// ドロップした武器を拾う。拾えたらtrue（今の武器は、その場に捨てられる）
+bool PlayerPickupWeapon(WeaponType type, int magazine, int reserve);

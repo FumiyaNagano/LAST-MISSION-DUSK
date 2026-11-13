@@ -157,6 +157,7 @@
     <ClCompile Include="Source\Scene\Title\TitleScene.cpp" />
     <ClCompile Include="Source\Sound\SoundManager.cpp" />
     <ClCompile Include="Source\Weapon\Weapon.cpp" />
+    <ClCompile Include="Source\Weapon\WeaponDrop.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Animation\Animation.h" />
@@ -180,6 +181,7 @@
     <ClInclude Include="Source\Scene\Title\TitleScene.h" />
     <ClInclude Include="Source\Sound\SoundManager.h" />
     <ClInclude Include="Source\Weapon\Weapon.h" />
+    <ClInclude Include="Source\Weapon\WeaponDrop.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

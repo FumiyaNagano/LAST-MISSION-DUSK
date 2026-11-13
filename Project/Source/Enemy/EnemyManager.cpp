@@ -5,6 +5,8 @@
 #include "../Collision/Collision.h"
 #include "../GameSetting/GameSetting.h"
 #include "../Player/Player.h"
+#include "../Map/Block.h"
+#include "../Weapon/WeaponDrop.h"
 #include <math.h>
 
 // 配列の要素数
@@ -13,6 +15,9 @@
 // 画面外に出てから消すまでの余白（ピクセル）
 #define ENEMY_OUT_MARGIN		(200.0f)
 
+// 倒したときにドロップする予備弾の割合（1.0なら、その武器の予備弾が満タン）
+#define ENEMY_DROP_RESERVE_RATIO	(1.0f)
+
 // 被弾時の白点滅の長さ（秒）
 #define ENEMY_HIT_FLASH_TIME	(0.1f)
 
@@ -20,13 +25,13 @@
 #define ENEMY_SHOOT_ANIM_TIME	(0.2f)
 
 // 出現関連
-#define ENEMY_SPAWN_INTERVAL	(3.0f)		// 出現の間隔（秒）
+#define ENEMY_SPAWN_INTERVAL	(5.0f)		// 出現の間隔（秒）
 #define ENEMY_ALIVE_MAX			(8)			// 同時に存在させる敵の上限
 #define ENEMY_SPAWN_MARGIN		(80.0f)		// 画面の外側にどれだけ離して出現させるか
 #define ENEMY_FIRST_SPAWN_TIME	(1.0f)		// 開始から最初の出現までの時間（秒）
 
-// 敵の画像が元々左向きかどうか（trueなら、右を向くときだけ左右反転して描画する）
-#define ENEMY_IMAGE_FACING_LEFT	(true)
+// 敵の画像が元々左向きかどうか（falseなら右向きの画像。向きが違うときだけ左右反転して描画する）
+#define ENEMY_IMAGE_FACING_LEFT	(false)
 
 // 銃口の位置（敵の矩形の左上・中心からの距離。右向きを基準に、左向きは左右反転）
 #define ENEMY_MUZZLE_OFFSET_X	(40.0f)
@@ -47,7 +52,7 @@ struct EnemyDef
 static const EnemyDef g_EnemyDefs[ENEMY_TYPE_NUM] =
 {
 	//  幅      高さ    HP  速度   停止距離 ばらつき 接触ダメ
-	{ 46.0f, 100.0f, 30, 100.0f, 300.0f, 3.0f, 10 },	// ソルジャー
+	{ 46.0f, 100.0f, 30, 100.0f, 300.0f, 5.0f, 10 },	// ソルジャー
 };
 
 // 経過時間に応じて、出現する敵が持つ武器を段階的に強くする
@@ -129,7 +134,15 @@ static void KillEnemy(EnemyData* e)
 {
 	e->active = false;
 
-	// TODO: 次のステップで、ここから e->gun.type の武器をドロップする
+	// 持っていた武器をその場にドロップする（予備弾が無限の武器は、落としても意味がないので落とさない）
+	WeaponType type = e->gun.type;
+	if (WeaponCanDrop(type))
+	{
+		const WeaponDef* def = GetWeaponDef(type);
+		int reserve = (int)((float)def->reserveMax * ENEMY_DROP_RESERVE_RATIO);
+		VECTOR center = VGet(e->pos.x + e->width * 0.5f, e->pos.y + e->height * 0.5f, 0.0f);
+		SpawnWeaponDrop(type, def->magazineSize, reserve, center, true);
+	}
 }
 
 // 画面の外周のどこかから、経過時間に応じた武器を持つ敵を出現させる
@@ -192,6 +205,33 @@ static void FireEnemyBullet(const EnemyData* e, VECTOR target)
 
 	FireBullet(BULLET_OWNER_ENEMY, muzzle, dir,
 		def->bulletSpeed, def->bulletLife, def->bulletRadius, def->damage);
+}
+
+// 敵の矩形がブロックに当たるか。画面の完全に外側にいるときは判定しない
+// （画面外から入ってくる敵が、出現位置のせいで動けなくならないようにするため）
+static bool EnemyHitsBlock(float x, float y, float w, float h)
+{
+	if (x + w < 0.0f || x > SCREEN_WIDTH || y + h < 0.0f || y > SCREEN_HEIGHT)
+	{
+		return false;
+	}
+	return CheckBlockCollision(x, y, w, h);
+}
+
+// ブロックを避けて移動する（X方向とY方向を別々に判定するので、壁に沿って滑る）
+static void MoveEnemyWithBlocks(EnemyData* e, VECTOR delta)
+{
+	float nextX = e->pos.x + delta.x;
+	if (!EnemyHitsBlock(nextX, e->pos.y, e->width, e->height))
+	{
+		e->pos.x = nextX;
+	}
+
+	float nextY = e->pos.y + delta.y;
+	if (!EnemyHitsBlock(e->pos.x, nextY, e->width, e->height))
+	{
+		e->pos.y = nextY;
+	}
 }
 
 // 敵の行動：撃ちながらプレイヤーへ接近し、リロード中はその場で止まる
@@ -273,9 +313,9 @@ void LoadEnemy()
 	// 各コマの {幅, 体の中心x}。画像編集ソフトで測った値を入れる。
 	// 幅の合計 = 画像の横幅 になっていること（Debugビルドで合っていないと警告が出る）
 	// 以下の数値とファイル名は仮です。実際の画像に合わせて書き換えてください。
-	static const AnimFrameDef kar98kIdle[] = { {58, 29} };
-	static const AnimFrameDef kar98kMove[] = { {72, 36}, {76, 38}, {86, 43}, {80, 40}, {80, 40} };
-	static const AnimFrameDef kar98kShoot[] = { {130, 65}, {132, 66} };
+	static const AnimFrameDef kar98kIdle[] = { { 58, 24 } };
+	static const AnimFrameDef kar98kMove[] = { { 72, 30 }, {76, 33}, { 84, 30 }, { 80, 32 }, { 82, 28 } };
+	static const AnimFrameDef kar98kShoot[] = { { 142, 29 }, { 120, 42 } };
 
 	//                   画像データ                                      ファイル                                 定義           コマ数                    時間   ループ
 	LoadAnim(&g_EnemyAnim[WEAPON_KAR98K][ENEMY_STATE_IDLE], "Data/Enemy/Kar98kEnemyIdle.png", kar98kIdle, ARRAY_COUNT(kar98kIdle), 0.20f, true);
@@ -328,7 +368,7 @@ void UpdateEnemy()
 		UpdateEnemyAI(e, dt);
 
 		// 移動 = 速度(px/秒) * 経過時間(秒)
-		e->pos = VAdd(e->pos, VScale(e->velocity, dt));
+		MoveEnemyWithBlocks(e, VScale(e->velocity, dt));
 
 		// アニメーションを進める
 		const AnimData* anim = GetEnemyAnim(e->gun.type, e->state);

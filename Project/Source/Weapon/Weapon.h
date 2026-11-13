@@ -80,3 +80,6 @@ bool WeaponIsOutOfAmmo(const WeaponState* s);
 
 // リロードの進み具合（0.0〜1.0）。表示用
 float WeaponReloadProgress(const WeaponState* s);
+
+// ドロップできる武器か（予備弾が無限の武器は、落としても意味がないのでfalse）
+bool WeaponCanDrop(WeaponType type);

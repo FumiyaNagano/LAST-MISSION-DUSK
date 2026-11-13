@@ -4,6 +4,7 @@
 #include "../../Scene/SceneManager.h"
 #include "../../Bullet/BulletManager.h"
 #include "../../Enemy/EnemyManager.h"
+#include "../../Weapon/WeaponDrop.h"
 // #include "../../Sound/SoundManager.h"
 // #include "../../Collision/Collision.h"
 // #include "../../Effect/Effect.h"
@@ -25,6 +26,8 @@ void InitPlayScene()
 	InitEnemy();
 
 	InitBullet();
+
+	InitWeaponDrop();
 
 	InitBlock();
 }
@@ -49,6 +52,8 @@ void StartPlayScene()
 	StartPlayer();
 
 	StartEnemy();
+
+	StartWeaponDrop();
 
 	CreateMap();
 }
@@ -77,6 +82,8 @@ void UpdatePlayScene()
 	EnemyHitPlayerBullet();
 
 	PlayerHitEnemy();
+
+	UpdateWeaponDrop();
 }
 
 void DrawPlayScene()
@@ -84,6 +91,8 @@ void DrawPlayScene()
 	DrawBackGround();
 
 	DrawBlock();
+
+	DrawWeaponDrop();
 
 	DrawPlayer();
 
