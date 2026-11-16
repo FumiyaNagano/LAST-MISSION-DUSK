@@ -6,9 +6,13 @@
 #include "../Player/Player.h"
 #include <math.h>
 
-// 見た目と判定の大きさ
+// 画像がない武器の、見た目と判定の大きさ（仮の四角）。画像がある武器も、これより小さくはならない
 #define WEAPON_DROP_WIDTH		(64.0f)
 #define WEAPON_DROP_HEIGHT		(32.0f)
+
+// 武器画像を表示するときの倍率（全武器共通。武器どうしの大きさの比率は、画像のまま保たれる）
+// 画像の大きさを見ながら調整する。1.0で原寸
+#define WEAPON_DROP_IMAGE_SCALE	(0.6f)
 
 // 地面に残る時間（秒）
 #define WEAPON_DROP_LIFE		(20.0f)
@@ -22,7 +26,18 @@
 #define WEAPON_DROP_BOB_HEIGHT	(3.0f)
 #define WEAPON_DROP_BOB_SPEED	(4.0f)
 
-// 仮表示の色（武器ごと）。画像ができたら置き換える
+// ドロップした武器の画像。実際のファイル名に合わせて書き換える（nullptrなら仮の四角で表示）
+static const char* g_DropImagePaths[WEAPON_NUM] =
+{
+	nullptr,							// ピストル（予備武器なので落とさない）
+	"Data/Weapon/Kar98k_Test.png",		// Kar98k
+	"Data/Weapon/M1Garand_Test.png",	// M1 Garand
+	"Data/Weapon/MP5_Test.png",			// MP5
+	"Data/Weapon/M4A1_Test.png",		// M4A1
+	"Data/Weapon/XM250_Test.png",		// XM250
+};
+
+// 画像がない武器の、仮表示の色
 static const int g_DropColors[WEAPON_NUM][3] =
 {
 	{ 150, 150, 150 },	// ピストル
@@ -35,6 +50,26 @@ static const int g_DropColors[WEAPON_NUM][3] =
 
 static WeaponDropData g_Drops[WEAPON_DROP_MAX] = {};
 
+// 画像の情報（武器ごと）
+static bool  g_DropHasImage[WEAPON_NUM] = {};	// 画像を読み込めたか
+static int   g_DropImage[WEAPON_NUM] = {};
+static float g_DropScale[WEAPON_NUM] = {};		// 表示する倍率
+static float g_DropImageW[WEAPON_NUM] = {};		// 縮小後の画像の幅
+static float g_DropImageH[WEAPON_NUM] = {};		// 縮小後の画像の高さ
+
+// 拾える範囲の大きさ（画像があれば画像の大きさ、なければ仮の四角。最小は仮の四角と同じ）
+static void GetDropSize(WeaponType type, float* w, float* h)
+{
+	*w = WEAPON_DROP_WIDTH;
+	*h = WEAPON_DROP_HEIGHT;
+
+	if (g_DropHasImage[type])
+	{
+		if (g_DropImageW[type] > *w) *w = g_DropImageW[type];
+		if (g_DropImageH[type] > *h) *h = g_DropImageH[type];
+	}
+}
+
 void InitWeaponDrop()
 {
 	for (int i = 0; i < WEAPON_DROP_MAX; i++)
@@ -43,9 +78,48 @@ void InitWeaponDrop()
 	}
 }
 
+void LoadWeaponDrop()
+{
+	for (int t = 0; t < WEAPON_NUM; t++)
+	{
+		g_DropHasImage[t] = false;
+		if (g_DropImagePaths[t] == nullptr) continue;
+
+		int handle = LoadGraph(g_DropImagePaths[t]);
+		if (handle == -1)
+		{
+			printfDx("画像の読み込みに失敗: %s\n", g_DropImagePaths[t]);
+			continue;
+		}
+
+		int w = 0, h = 0;
+		GetGraphSize(handle, &w, &h);
+
+		float scale = WEAPON_DROP_IMAGE_SCALE;
+
+		g_DropImage[t] = handle;
+		g_DropScale[t] = scale;
+		g_DropImageW[t] = (float)w * scale;
+		g_DropImageH[t] = (float)h * scale;
+		g_DropHasImage[t] = true;
+	}
+}
+
 void StartWeaponDrop()
 {
 	InitWeaponDrop();
+}
+
+void FinWeaponDrop()
+{
+	for (int t = 0; t < WEAPON_NUM; t++)
+	{
+		if (g_DropHasImage[t])
+		{
+			DeleteGraph(g_DropImage[t]);
+			g_DropHasImage[t] = false;
+		}
+	}
 }
 
 WeaponDropData* SpawnWeaponDrop(WeaponType type, int magazine, int reserve, VECTOR pos, bool pickable)
@@ -109,10 +183,11 @@ void UpdateWeaponDrop()
 		}
 
 		// プレイヤーの当たり判定矩形と、ドロップの矩形が重なっているか
+		float w = 0.0f, h = 0.0f;
+		GetDropSize(d->type, &w, &h);
 		bool touching = p->active && CheckRectRect(
 			p->pos.x, p->pos.y, PLAYER_WIDTH, PLAYER_HEIGHT,
-			d->pos.x - WEAPON_DROP_WIDTH * 0.5f, d->pos.y - WEAPON_DROP_HEIGHT * 0.5f,
-			WEAPON_DROP_WIDTH, WEAPON_DROP_HEIGHT);
+			d->pos.x - w * 0.5f, d->pos.y - h * 0.5f, w, h);
 
 		// 捨てた直後のドロップは、プレイヤーが一度離れるまで拾えない
 		if (!d->pickable)
@@ -144,19 +219,37 @@ void DrawWeaponDrop()
 		// 消える直前は点滅
 		if (d->life < WEAPON_DROP_BLINK_TIME && ((int)(d->life * 8.0f)) % 2 == 0) continue;
 
+		float w = 0.0f, h = 0.0f;
+		GetDropSize(d->type, &w, &h);
+
 		float bob = sinf(d->age * WEAPON_DROP_BOB_SPEED) * WEAPON_DROP_BOB_HEIGHT;
-		int x1 = (int)(d->pos.x - WEAPON_DROP_WIDTH * 0.5f);
-		int y1 = (int)(d->pos.y - WEAPON_DROP_HEIGHT * 0.5f + bob);
-		int x2 = x1 + (int)WEAPON_DROP_WIDTH;
-		int y2 = y1 + (int)WEAPON_DROP_HEIGHT;
+		float cx = d->pos.x;
+		float cy = d->pos.y + bob;
 
-		// TODO: 画像ができたらここを置き換える（今は仮の四角）
-		const int* c = g_DropColors[d->type];
-		DrawBox(x1, y1, x2, y2, GetColor(c[0], c[1], c[2]), TRUE);
-		DrawBox(x1, y1, x2, y2, GetColor(255, 255, 255), FALSE);
+		if (g_DropHasImage[d->type])
+		{
+			// 武器の画像（中心を合わせて描く）
+			DrawRotaGraphF(cx, cy, (double)g_DropScale[d->type], 0.0, g_DropImage[d->type], TRUE);
+		}
+		else
+		{
+			// 画像がない武器は、色つきの四角で代用
+			int x1 = (int)(cx - w * 0.5f);
+			int y1 = (int)(cy - h * 0.5f);
+			const int* c = g_DropColors[d->type];
+			DrawBox(x1, y1, x1 + (int)w, y1 + (int)h, GetColor(c[0], c[1], c[2]), TRUE);
+			DrawBox(x1, y1, x1 + (int)w, y1 + (int)h, GetColor(255, 255, 255), FALSE);
+		}
 
-		// 武器名と、残りの総弾数
-		DrawString(x1, y1 - 18, GetWeaponDef(d->type)->name, GetColor(255, 255, 255));
-		DrawFormatString(x1 + 4, y1 + 8, GetColor(255, 255, 255), "%d", d->magazine + d->reserve);
+		// 武器名（上）と、残りの総弾数（下）
+		int tx = (int)(cx - w * 0.5f);
+		DrawString(tx, (int)(cy - h * 0.5f) - 18, GetWeaponDef(d->type)->name, GetColor(255, 255, 255));
+		DrawFormatString(tx, (int)(cy + h * 0.5f) + 2, GetColor(255, 255, 255), "%d", d->magazine + d->reserve);
 	}
+}
+
+bool WeaponDropHasImage(WeaponType type)
+{
+	if (type < 0 || type >= WEAPON_NUM) return false;
+	return g_DropHasImage[type];
 }

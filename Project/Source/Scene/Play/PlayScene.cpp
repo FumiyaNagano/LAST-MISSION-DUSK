@@ -42,6 +42,8 @@ void LoadPlayScene()
 
 	LoadBullet();
 
+	LoadWeaponDrop();
+
 	LoadBlock();
 
 	LoadMapChipData();
@@ -110,6 +112,8 @@ void FinPlayScene()
 	FinEnemy();
 
 	FinBullet();
+
+	FinWeaponDrop();
 
 	FinBlock();
 }

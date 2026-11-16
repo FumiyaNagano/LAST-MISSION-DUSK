@@ -45,7 +45,8 @@
 #define PLAYER_MOVE_AREA_BOTTOM	(980.0f)
 
 // プレイヤーのHP
-#define PLAYER_HP (100)
+//#define PLAYER_HP (100)
+#define PLAYER_HP (10000)	// デバッグ用HP設定
 
 // プレイヤー死亡エフェクトインターバル
 #define PLAYER_DEAD_EFFECT_INTERVAL (2)
