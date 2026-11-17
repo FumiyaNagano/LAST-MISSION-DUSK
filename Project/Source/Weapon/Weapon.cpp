@@ -2,10 +2,10 @@
 
 static const WeaponDef g_WeaponDefs[WEAPON_NUM] =
 {
-	//  ñºëO         ÉÇÅ[Éh            ä‘äu          íeë¨     éıñΩ   îºåa  É_ÉÅ íeëq ó\îıíe                  ÉäÉçÅ[Éh SE
+	//  ñºëO         ÉÇÅ[Éh        ä‘äu          íeë¨     éıñΩ   îºåa  É_ÉÅ íeëq ó\îıíe                  ÉäÉçÅ[Éh SE
 	{ "Pistol",    FIRE_MODE_SEMI, 0.25f,        1200.0f, 10.0f, 6.0f,  3,  17,  WEAPON_AMMO_INFINITE, 1.0f, SE_PLAYER_SHOT },	// ó\îıïêäÌ
-	{ "Kar98k",    FIRE_MODE_SEMI, 1.0f,         1400.0f, 10.0f, 5.0f,  5,  10,  45,                   2.0f, SE_PLAYER_SHOT },	// 5î≠ x 10å¬
-	{ "M1 Garand", FIRE_MODE_SEMI, 0.3f,         1300.0f, 10.0f, 5.0f,  5,  10,  72,                   3.0f, SE_PLAYER_SHOT },	// 8î≠ x 10å¬
+	{ "Kar98k",    FIRE_MODE_SEMI, 1.0f,         1400.0f, 10.0f, 5.0f,  5,   5,  45,                   2.0f, SE_PLAYER_SHOT },	// 5î≠ x 10å¬
+	{ "M1 Garand", FIRE_MODE_SEMI, 0.3f,         1300.0f, 10.0f, 5.0f,  5,   8,  72,                   3.0f, SE_PLAYER_SHOT },	// 8î≠ x 10å¬
 	{ "MP5",       FIRE_MODE_AUTO, 1.0f / 13.0f,  900.0f, 10.0f, 4.0f,  3,  30, 120,                   2.0f, SE_PLAYER_SHOT },	// 30î≠ x 5å¬ÅA13î≠/ïb
 	{ "M4A1",      FIRE_MODE_AUTO, 1.0f / 11.0f, 1000.0f, 10.0f, 5.0f,  4,  30, 120,                   3.0f, SE_PLAYER_SHOT },	// 30î≠ x 5å¬ÅA11î≠/ïb
 	{ "XM250",     FIRE_MODE_AUTO, 0.1f,         1100.0f, 10.0f, 6.0f,  7, 100, 200,                   5.0f, SE_PLAYER_SHOT },	// 100î≠ x 3å¬ÅA10î≠/ïb

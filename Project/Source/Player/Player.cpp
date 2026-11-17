@@ -37,6 +37,7 @@
 #define PLAYER_SHOT_OFFSET_UP_X			(2.0f)	// 体の中心からの左右のずれ（右向き）
 #define PLAYER_SHOT_OFFSET_UP_Y			(20.0f)
 #define PLAYER_SHOT_MIN_AIM_DISTANCE	(10.0f)
+#define PLAYER_SHOT_BUFFER_TIME			(0.3f)
 
 // 移動可能エリア
 #define PLAYER_MOVE_AREA_LEFT	(0.0f)
@@ -58,6 +59,8 @@ struct FrameDef
 };
 
 PlayerData g_PlayerData = { 0 };
+
+static float g_ShotBufferTimer = 0.0f; // 0より大きい間、クリックされたことを覚えている
 
 static PlayerAnimData g_PlayerAnim[PLAYER_STATE_NUM] = {};
 
@@ -178,6 +181,8 @@ void StartPlayer()
 	// HPの初期値設定
 	g_PlayerData.hp = PLAYER_HP;
 
+	g_ShotBufferTimer = 0.0f;
+
 	WeaponStateInitFull(&g_PlayerData.gun, WEAPON_DEFAULT);
 	PlayerEquipWeapon(WEAPON_MP5, 30, 90);	// 確認用（拾う処理ができたら削除）
 
@@ -290,15 +295,24 @@ void StepPlayer()
 		WeaponStartReload(&g_PlayerData.gun);
 	}
 
-	// 連射武器は押している間、単発武器は押した瞬間だけ
-	bool trigger = (weapon->mode == FIRE_MODE_AUTO)
-		? IsInputKey(MOUSE_LEFT)
-		: IsTriggerKey(MOUSE_LEFT);
+	// 押した瞬間を、一定時間覚えておく
+	if (IsTriggerKey(MOUSE_LEFT))
+	{
+		g_ShotBufferTimer = PLAYER_SHOT_BUFFER_TIME;
+	}
+	else if (g_ShotBufferTimer > 0.0f)
+	{
+		g_ShotBufferTimer -= GetDeltaTime();
+	}
 
-	// 撃てる状態なら弾を1発消費する
+	// 覚えているクリックがあるとき、または連射武器で押し続けているときに撃つ
+	bool trigger = (g_ShotBufferTimer > 0.0f) ||
+		(weapon->mode == FIRE_MODE_AUTO && IsInputKey(MOUSE_LEFT));
+
 	bool fired = trigger && WeaponTryFire(&g_PlayerData.gun);
 	if (fired)
 	{
+		g_ShotBufferTimer = 0.0f;
 		g_PlayerData.shootTimer = PLAYER_SHOOT_ANIM_TIME;
 	}
 
@@ -311,7 +325,7 @@ void StepPlayer()
 		if (g_PlayerData.aimDir.x > 0.0f) g_PlayerData.facingLeft = false;
 
 		// 縦成分が大きい上向きだけ専用アニメーション。横、斜め、下は横向きを使う
-		bool shootUp = (g_PlayerData.aimDir.y < 0.0f && fabsf(g_PlayerData.aimDir.y) > fabs(g_PlayerData.aimDir.x));
+		bool shootUp = (g_PlayerData.aimDir.y < 0.0f && fabsf(g_PlayerData.aimDir.y) > fabsf(g_PlayerData.aimDir.x));
 		nextState = shootUp ? PLAYER_STATE_SHOOT_UP : PLAYER_STATE_SHOOT;
 
 		// 体の向きが確定した後で撃つ（銃口の位置が向きに依存するため）
@@ -326,6 +340,8 @@ void StepPlayer()
 			}
 		}
 	}
+
+	SetPlayerState(nextState);
 
 	// デバッグ: Kキーで敵の弾を発射（確認後に削除）
 	static bool prevK = false;
@@ -397,6 +413,14 @@ void UpdatePlayer()
 
 void DrawPlayer()
 {
+	int playerBullets = 0, enemyBullets = 0;
+	for (int i = 0; i < BULLET_MAX; i++)
+	{
+		BulletData* b = GetBullet(i);
+		if (b == nullptr || !b->active) continue;
+		if (b->owner == BULLET_OWNER_PLAYER) playerBullets++; else enemyBullets++;
+	}
+
 	if (!g_PlayerData.active) return;
 
 	// 無敵中は0.1秒ごとに表示と非表示を切り替えて点滅させる

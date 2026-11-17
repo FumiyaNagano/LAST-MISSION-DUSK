@@ -42,5 +42,6 @@ struct EnemyData
 	EnemyState state;
 	AnimPlayer anim;
 	float shootTimer;		// 射撃アニメーションを表示する残り時間（秒）
+	float sightTimer;		// プレイヤーが途切れず見えている時間（秒）。見えなくなると0に戻る
 	float hitFlashTimer;	// 被弾の白点滅の残り時間（秒）
 };

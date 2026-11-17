@@ -1,5 +1,6 @@
 ﻿#include "DxLib.h"
 #include "EnemyManager.h"
+#include "EnemyNav.h"
 #include "../FPS/FPS.h"
 #include "../Bullet/BulletManager.h"
 #include "../Collision/Collision.h"
@@ -24,9 +25,15 @@
 // 射撃アニメーションを表示する時間（秒）
 #define ENEMY_SHOOT_ANIM_TIME	(0.2f)
 
+// プレイヤーが見えてから、撃ち始めるまでの反応時間（秒）。壁から出た途端に撃たれないようにする
+#define ENEMY_REACTION_TIME		(0.4f)
+
+// 経路探索の確認用表示（敵が通れないマスを赤く表示する）。確認できたら0にする
+#define ENEMY_NAV_DEBUG_DRAW	(0)
+
 // 出現関連
-#define ENEMY_SPAWN_INTERVAL	(5.0f)		// 出現の間隔（秒）
-#define ENEMY_ALIVE_MAX			(8)			// 同時に存在させる敵の上限
+#define ENEMY_SPAWN_INTERVAL	(3.0f)		// 出現の間隔（秒）
+#define ENEMY_ALIVE_MAX			(5)			// 同時に存在させる敵の上限
 #define ENEMY_SPAWN_MARGIN		(80.0f)		// 画面の外側にどれだけ離して出現させるか
 #define ENEMY_FIRST_SPAWN_TIME	(1.0f)		// 開始から最初の出現までの時間（秒）
 
@@ -52,7 +59,7 @@ struct EnemyDef
 static const EnemyDef g_EnemyDefs[ENEMY_TYPE_NUM] =
 {
 	//  幅      高さ    HP  速度   停止距離 ばらつき 接触ダメ
-	{ 46.0f, 100.0f, 30, 100.0f, 300.0f, 15.0f, 10 },	// ソルジャー
+	{ 46.0f, 100.0f, 30, 100.0f, 300.0f, 3.0f, 10 },	// ソルジャー
 };
 
 // 経過時間に応じて、出現する敵が持つ武器を段階的に強くする
@@ -178,14 +185,21 @@ static void SpawnEnemyAtEdge()
 	SpawnEnemy(ENEMY_TYPE_SOLDIER, GetStageWeapon(g_EnemyElapsedTime), x, y);
 }
 
+// 銃口の位置（敵の矩形の中心からの距離。右向きを基準に、左向きは左右反転）
+static VECTOR GetEnemyMuzzle(const EnemyData* e)
+{
+	float side = e->facingLeft ? -1.0f : 1.0f;
+	return VGet(e->pos.x + e->width * 0.5f + side * ENEMY_MUZZLE_OFFSET_X,
+		e->pos.y + ENEMY_MUZZLE_OFFSET_Y, 0.0f);
+}
+
 // 敵が弾を1発撃つ（弾数の消費は呼び出し前に済んでいる）
 static void FireEnemyBullet(const EnemyData* e, VECTOR target)
 {
 	const WeaponDef* def = GetWeaponDef(e->gun.type);
 
 	float side = e->facingLeft ? -1.0f : 1.0f;
-	VECTOR muzzle = VGet(e->pos.x + e->width * 0.5f + side * ENEMY_MUZZLE_OFFSET_X,
-		e->pos.y + ENEMY_MUZZLE_OFFSET_Y, 0.0f);
+	VECTOR muzzle = GetEnemyMuzzle(e);
 
 	VECTOR dir = VSub(target, muzzle);
 	if (VSquareSize(dir) < 1.0f)
@@ -234,7 +248,7 @@ static void MoveEnemyWithBlocks(EnemyData* e, VECTOR delta)
 	}
 }
 
-// 敵の行動：撃ちながらプレイヤーへ接近し、リロード中はその場で止まる
+// 敵の行動：壁を避けてプレイヤーへ接近し、見えているときだけ撃つ。リロード中はその場で止まる
 static void UpdateEnemyAI(EnemyData* e, float dt)
 {
 	const PlayerData* p = GetPlayer();
@@ -243,6 +257,7 @@ static void UpdateEnemyAI(EnemyData* e, float dt)
 	if (!p->active)
 	{
 		e->velocity = VGet(0.0f, 0.0f, 0.0f);
+		e->sightTimer = 0.0f;
 		SetEnemyState(e, ENEMY_STATE_IDLE);
 		return;
 	}
@@ -259,22 +274,42 @@ static void UpdateEnemyAI(EnemyData* e, float dt)
 	}
 
 	bool reloading = WeaponIsReloading(&e->gun);
+	const WeaponDef* def = GetWeaponDef(e->gun.type);
 
-	// 移動：リロード中、または十分近いときは止まる
-	if (reloading || dist <= e->stopDistance)
+	// 視線：銃口からプレイヤーの中心まで、弾が通れるか（途中にブロックがないか）
+	float bulletSize = def->bulletRadius * 2.0f;
+	bool hasSight = NavIsClear(GetEnemyMuzzle(e), playerCenter, bulletSize, bulletSize);
+	if (hasSight)
+	{
+		e->sightTimer += dt;
+	}
+	else
+	{
+		e->sightTimer = 0.0f;
+	}
+
+	// 移動：リロード中、または「見えていて、十分近い」ときは止まる
+	// （壁の向こうで近いだけのときは、止まらずに回り込む）
+	if (reloading || (hasSight && dist <= e->stopDistance))
 	{
 		e->velocity = VGet(0.0f, 0.0f, 0.0f);
 	}
 	else
 	{
-		e->velocity = VScale(VNorm(toPlayer), e->moveSpeed);
+		// 基本は道案内に従う。画面の外にいるときや、道案内できないときは、まっすぐ向かう
+		VECTOR dir;
+		if (!NavGetDirection(enemyCenter, &dir))
+		{
+			dir = (dist > 0.001f) ? VScale(toPlayer, 1.0f / dist) : VGet(0.0f, 0.0f, 0.0f);
+		}
+		e->velocity = VScale(dir, e->moveSpeed);
 	}
 
-	// 射撃：画面の中にいるときだけ撃つ
+	// 射撃：画面の中にいて、プレイヤーが一定時間（反応時間）見え続けているときだけ撃つ
 	bool onScreen = enemyCenter.x >= 0.0f && enemyCenter.x <= SCREEN_WIDTH &&
 		enemyCenter.y >= 0.0f && enemyCenter.y <= SCREEN_HEIGHT;
 
-	if (onScreen && WeaponTryFire(&e->gun))
+	if (onScreen && e->sightTimer >= ENEMY_REACTION_TIME && WeaponTryFire(&e->gun))
 	{
 		FireEnemyBullet(e, playerCenter);
 		e->shootTimer = ENEMY_SHOOT_ANIM_TIME;
@@ -312,23 +347,60 @@ void LoadEnemy()
 {
 	// 各コマの {幅, 体の中心x}。画像編集ソフトで測った値を入れる。
 	// 幅の合計 = 画像の横幅 になっていること（Debugビルドで合っていないと警告が出る）
-	// 以下の数値とファイル名は仮です。実際の画像に合わせて書き換えてください。
+	// 読み込んでいない武器・状態は、Kar98kの画像で代用される。
+	// Kar98kEnemyアニメーション
 	static const AnimFrameDef kar98kIdle[] = { { 58, 24 } };
 	static const AnimFrameDef kar98kMove[] = { { 72, 30 }, {76, 33}, { 84, 30 }, { 80, 32 }, { 82, 28 } };
 	static const AnimFrameDef kar98kShoot[] = { { 142, 29 }, { 120, 42 } };
 
-	//                   画像データ                                      ファイル                                 定義           コマ数                    時間   ループ
-	LoadAnim(&g_EnemyAnim[WEAPON_KAR98K][ENEMY_STATE_IDLE], "Data/Enemy/Kar98kEnemyIdle.png", kar98kIdle, ARRAY_COUNT(kar98kIdle), 0.20f, true);
-	LoadAnim(&g_EnemyAnim[WEAPON_KAR98K][ENEMY_STATE_MOVE], "Data/Enemy/Kar98kEnemyMoving.png", kar98kMove, ARRAY_COUNT(kar98kMove), 0.12f, true);
-	LoadAnim(&g_EnemyAnim[WEAPON_KAR98K][ENEMY_STATE_SHOOT], "Data/Enemy/Kar98kEnemyShooting.png", kar98kShoot, ARRAY_COUNT(kar98kShoot), 0.10f, true);
+	//                   画像データ                                      ファイル                 定義           コマ数              時間   ループ
+	LoadAnim(&g_EnemyAnim[WEAPON_KAR98K][ENEMY_STATE_IDLE], "Data/Enemy/Kar98kEnemyIdle.png", kar98kIdle, ARRAY_COUNT(kar98kIdle), 0.20f, false);
+	LoadAnim(&g_EnemyAnim[WEAPON_KAR98K][ENEMY_STATE_MOVE], "Data/Enemy/Kar98kEnemyMove.png", kar98kMove, ARRAY_COUNT(kar98kMove), 0.12f, true);
+	LoadAnim(&g_EnemyAnim[WEAPON_KAR98K][ENEMY_STATE_SHOOT], "Data/Enemy/Kar98kEnemyShoot.png", kar98kShoot, ARRAY_COUNT(kar98kShoot), 0.10f, true);
 
-	// 他の武器（M1 Garand など）の画像ができたら、同じ形で g_EnemyAnim[武器][状態] に読み込む。
-	// 読み込んでいない武器・状態は、Kar98kの画像で代用される。
+	// M1GarandEnemyアニメーション
+	static const AnimFrameDef m1garandIdle[] = { { 56, 23 } };
+	static const AnimFrameDef m1garandMove[] = { { 70, 35 }, { 80, 40 }, { 84, 42}, { 80, 40 }, { 80, 40 } };
+	static const AnimFrameDef m1garandShoot[] = { { 140, 70 }, { 122, 61 } };
+
+	LoadAnim(&g_EnemyAnim[WEAPON_M1_GARAND][ENEMY_STATE_IDLE], "Data/Enemy/M1GarandEnemyIdle.png", m1garandIdle, ARRAY_COUNT(m1garandIdle), 0.20f, false);
+	LoadAnim(&g_EnemyAnim[WEAPON_M1_GARAND][ENEMY_STATE_MOVE], "Data/Enemy/M1GarandEnemyMove.png", m1garandMove, ARRAY_COUNT(m1garandMove), 0.12f, true);
+	LoadAnim(&g_EnemyAnim[WEAPON_M1_GARAND][ENEMY_STATE_SHOOT], "Data/Enemy/M1GarandEnemyShoot.png", m1garandShoot, ARRAY_COUNT(m1garandShoot), 0.30f, true);
+
+	// MP5Enemyアニメーション
+	static const AnimFrameDef mp5Idle[] = { { 48, 24 } };
+	static const AnimFrameDef mp5Move[] = { { 64, 32 }, { 84, 42 }, { 88, 44 }, { 80, 40 }, { 66, 33 } };
+	static const AnimFrameDef mp5Shoot[] = { { 104, 52 }, { 78, 39 } };
+
+	LoadAnim(&g_EnemyAnim[WEAPON_MP5][ENEMY_STATE_IDLE], "Data/Enemy/MP5EnemyIdle.png", mp5Idle, ARRAY_COUNT(mp5Idle), 0.20f, false);
+	LoadAnim(&g_EnemyAnim[WEAPON_MP5][ENEMY_STATE_MOVE], "Data/Enemy/MP5EnemyMove.png", mp5Move, ARRAY_COUNT(mp5Move), 0.12f, true);
+	LoadAnim(&g_EnemyAnim[WEAPON_MP5][ENEMY_STATE_SHOOT], "Data/Enemy/MP5EnemyShoot.png", mp5Shoot, ARRAY_COUNT(mp5Shoot), 0.10f, true);
+
+	// M4A1Enemyアニメーション
+	static const AnimFrameDef m4a1Idle[] = { { 54, 27 } };
+	static const AnimFrameDef m4a1Move[] = { { 70, 35 }, { 80, 40 }, { 80, 40 }, { 78, 39 } };
+	static const AnimFrameDef m4a1Shoot[] = { { 106, 53 }, { 86, 43 } };
+
+	LoadAnim(&g_EnemyAnim[WEAPON_M4A1][ENEMY_STATE_IDLE], "Data/Enemy/M4A1EnemyIdle.png", m4a1Idle, ARRAY_COUNT(m4a1Idle), 0.20f, false);
+	LoadAnim(&g_EnemyAnim[WEAPON_M4A1][ENEMY_STATE_MOVE], "Data/Enemy/M4A1EnemyMove.png", m4a1Move, ARRAY_COUNT(m4a1Move), 0.12f, true);
+	LoadAnim(&g_EnemyAnim[WEAPON_M4A1][ENEMY_STATE_SHOOT], "Data/Enemy/M4A1EnemyShoot.png", m4a1Shoot, ARRAY_COUNT(m4a1Shoot), 0.10f, true);
+
+	// XM250Enemyアニメーション
+	static const AnimFrameDef xm250Idle[] = { { 64, 32 } };
+	static const AnimFrameDef xm250Move[] = { { 80, 40 }, { 84, 42 }, { 80, 40 }, { 80, 40 }, { 88, 44 }, { 76, 38 } };
+	static const AnimFrameDef xm250Shoot[] = { { 114, 57 }, { 84, 42 } };
+
+	LoadAnim(&g_EnemyAnim[WEAPON_XM250][ENEMY_STATE_IDLE], "Data/Enemy/XM250EnemyIdle.png", xm250Idle, ARRAY_COUNT(xm250Idle), 0.20f, false);
+	LoadAnim(&g_EnemyAnim[WEAPON_XM250][ENEMY_STATE_MOVE], "Data/Enemy/XM250EnemyMove.png", xm250Move, ARRAY_COUNT(xm250Move), 0.12f, true);
+	LoadAnim(&g_EnemyAnim[WEAPON_XM250][ENEMY_STATE_SHOOT], "Data/Enemy/XM250EnemyShoot.png", xm250Shoot, ARRAY_COUNT(xm250Shoot), 0.10f, true);
 }
 
 void StartEnemy()
 {
 	InitEnemy();
+
+	// 道案内に、敵の体の大きさを伝える（マップは、最初の更新のときに調べられる）
+	NavInit(g_EnemyDefs[ENEMY_TYPE_SOLDIER].width, g_EnemyDefs[ENEMY_TYPE_SOLDIER].height);
 
 	g_EnemyElapsedTime = 0.0f;
 	g_EnemySpawnTimer = ENEMY_FIRST_SPAWN_TIME;
@@ -339,6 +411,13 @@ void UpdateEnemy()
 	float dt = GetDeltaTime();
 
 	g_EnemyElapsedTime += dt;
+
+	// 道案内の更新（プレイヤーのいるマスが変わったときだけ、計算し直される）
+	const PlayerData* player = GetPlayer();
+	if (player->active)
+	{
+		NavUpdate(VGet(player->pos.x + PLAYER_WIDTH * 0.5f, player->pos.y + PLAYER_HEIGHT * 0.5f, 0.0f));
+	}
 
 	// 出現（画面の外周から）
 	g_EnemySpawnTimer -= dt;
@@ -390,6 +469,10 @@ void UpdateEnemy()
 
 void DrawEnemy()
 {
+#if ENEMY_NAV_DEBUG_DRAW
+	DrawNavDebug();
+#endif
+
 	for (int i = 0; i < ENEMY_MAX; i++)
 	{
 		EnemyData* e = &g_EnemyData[i];
@@ -482,6 +565,7 @@ EnemyData* SpawnEnemy(EnemyType type, WeaponType weapon, float x, float y)
 		e->state = ENEMY_STATE_IDLE;
 		ResetAnimPlayer(&e->anim);
 		e->shootTimer = 0.0f;
+		e->sightTimer = 0.0f;
 		e->hitFlashTimer = 0.0f;
 		return e;
 	}

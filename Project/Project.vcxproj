@@ -144,6 +144,7 @@
     <ClCompile Include="Source\Bullet\Bullet.cpp" />
     <ClCompile Include="Source\Collision\Collision.cpp" />
     <ClCompile Include="Source\Enemy\EnemyManager.cpp" />
+    <ClCompile Include="Source\Enemy\EnemyNav.cpp" />
     <ClCompile Include="Source\FPS\FPS.cpp" />
     <ClCompile Include="Source\Input\Input.cpp" />
     <ClCompile Include="Source\Main.cpp" />
@@ -167,6 +168,7 @@
     <ClInclude Include="Source\Collision\Collision.h" />
     <ClInclude Include="Source\Enemy\Enemy.h" />
     <ClInclude Include="Source\Enemy\EnemyManager.h" />
+    <ClInclude Include="Source\Enemy\EnemyNav.h" />
     <ClInclude Include="Source\FPS\FPS.h" />
     <ClInclude Include="Source\GameSetting\GameSetting.h" />
     <ClInclude Include="Source\Input\Input.h" />
