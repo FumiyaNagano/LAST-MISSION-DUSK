@@ -139,6 +139,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Aim\AimDisplay.cpp" />
     <ClCompile Include="Source\Animation\Animation.cpp" />
     <ClCompile Include="Source\BackGround\BackGround.cpp" />
     <ClCompile Include="Source\Bullet\Bullet.cpp" />
@@ -161,6 +162,7 @@
     <ClCompile Include="Source\Weapon\WeaponDrop.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Aim\AimDisplay.h" />
     <ClInclude Include="Source\Animation\Animation.h" />
     <ClInclude Include="Source\BackGround\BackGround.h" />
     <ClInclude Include="Source\Bullet\Bullet.h" />

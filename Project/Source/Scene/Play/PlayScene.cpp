@@ -101,6 +101,8 @@ void DrawPlayScene()
 	DrawEnemy();
 
 	DrawBullet();
+
+	DrawPlayerAim();
 }
 
 void FinPlayScene()

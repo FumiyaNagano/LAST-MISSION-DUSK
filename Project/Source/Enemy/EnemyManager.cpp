@@ -359,36 +359,36 @@ void LoadEnemy()
 	LoadAnim(&g_EnemyAnim[WEAPON_KAR98K][ENEMY_STATE_SHOOT], "Data/Enemy/Kar98kEnemyShoot.png", kar98kShoot, ARRAY_COUNT(kar98kShoot), 0.10f, true);
 
 	// M1GarandEnemyアニメーション
-	static const AnimFrameDef m1garandIdle[] = { { 56, 23 } };
-	static const AnimFrameDef m1garandMove[] = { { 70, 35 }, { 80, 40 }, { 84, 42}, { 80, 40 }, { 80, 40 } };
-	static const AnimFrameDef m1garandShoot[] = { { 140, 70 }, { 122, 61 } };
+	static const AnimFrameDef m1garandIdle[] = { { 56, 22 } };
+	static const AnimFrameDef m1garandMove[] = { { 70, 30 }, { 80, 35 }, { 84, 29}, { 80, 30 }, { 80, 27 } };
+	static const AnimFrameDef m1garandShoot[] = { { 140, 30 }, { 122, 45 } };
 
 	LoadAnim(&g_EnemyAnim[WEAPON_M1_GARAND][ENEMY_STATE_IDLE], "Data/Enemy/M1GarandEnemyIdle.png", m1garandIdle, ARRAY_COUNT(m1garandIdle), 0.20f, false);
 	LoadAnim(&g_EnemyAnim[WEAPON_M1_GARAND][ENEMY_STATE_MOVE], "Data/Enemy/M1GarandEnemyMove.png", m1garandMove, ARRAY_COUNT(m1garandMove), 0.12f, true);
-	LoadAnim(&g_EnemyAnim[WEAPON_M1_GARAND][ENEMY_STATE_SHOOT], "Data/Enemy/M1GarandEnemyShoot.png", m1garandShoot, ARRAY_COUNT(m1garandShoot), 0.30f, true);
+	LoadAnim(&g_EnemyAnim[WEAPON_M1_GARAND][ENEMY_STATE_SHOOT], "Data/Enemy/M1GarandEnemyShoot.png", m1garandShoot, ARRAY_COUNT(m1garandShoot), 0.10f, true);
 
 	// MP5Enemyアニメーション
-	static const AnimFrameDef mp5Idle[] = { { 48, 24 } };
-	static const AnimFrameDef mp5Move[] = { { 64, 32 }, { 84, 42 }, { 88, 44 }, { 80, 40 }, { 66, 33 } };
-	static const AnimFrameDef mp5Shoot[] = { { 104, 52 }, { 78, 39 } };
+	static const AnimFrameDef mp5Idle[] = { { 48, 21 } };
+	static const AnimFrameDef mp5Move[] = { { 64, 25 }, { 84, 33 }, { 88, 34 }, { 80, 29 }, { 66, 27 } };
+	static const AnimFrameDef mp5Shoot[] = { { 104, 28 }, { 78, 31 } };
 
 	LoadAnim(&g_EnemyAnim[WEAPON_MP5][ENEMY_STATE_IDLE], "Data/Enemy/MP5EnemyIdle.png", mp5Idle, ARRAY_COUNT(mp5Idle), 0.20f, false);
 	LoadAnim(&g_EnemyAnim[WEAPON_MP5][ENEMY_STATE_MOVE], "Data/Enemy/MP5EnemyMove.png", mp5Move, ARRAY_COUNT(mp5Move), 0.12f, true);
 	LoadAnim(&g_EnemyAnim[WEAPON_MP5][ENEMY_STATE_SHOOT], "Data/Enemy/MP5EnemyShoot.png", mp5Shoot, ARRAY_COUNT(mp5Shoot), 0.10f, true);
 
 	// M4A1Enemyアニメーション
-	static const AnimFrameDef m4a1Idle[] = { { 54, 27 } };
-	static const AnimFrameDef m4a1Move[] = { { 70, 35 }, { 80, 40 }, { 80, 40 }, { 78, 39 } };
-	static const AnimFrameDef m4a1Shoot[] = { { 106, 53 }, { 86, 43 } };
+	static const AnimFrameDef m4a1Idle[] = { { 54, 22 } };
+	static const AnimFrameDef m4a1Move[] = { { 70, 23 }, { 80, 28 }, { 80, 31 }, { 78, 28 } };
+	static const AnimFrameDef m4a1Shoot[] = { { 106, 27 }, { 86, 32 } };
 
 	LoadAnim(&g_EnemyAnim[WEAPON_M4A1][ENEMY_STATE_IDLE], "Data/Enemy/M4A1EnemyIdle.png", m4a1Idle, ARRAY_COUNT(m4a1Idle), 0.20f, false);
 	LoadAnim(&g_EnemyAnim[WEAPON_M4A1][ENEMY_STATE_MOVE], "Data/Enemy/M4A1EnemyMove.png", m4a1Move, ARRAY_COUNT(m4a1Move), 0.12f, true);
 	LoadAnim(&g_EnemyAnim[WEAPON_M4A1][ENEMY_STATE_SHOOT], "Data/Enemy/M4A1EnemyShoot.png", m4a1Shoot, ARRAY_COUNT(m4a1Shoot), 0.10f, true);
 
 	// XM250Enemyアニメーション
-	static const AnimFrameDef xm250Idle[] = { { 64, 32 } };
-	static const AnimFrameDef xm250Move[] = { { 80, 40 }, { 84, 42 }, { 80, 40 }, { 80, 40 }, { 88, 44 }, { 76, 38 } };
-	static const AnimFrameDef xm250Shoot[] = { { 114, 57 }, { 84, 42 } };
+	static const AnimFrameDef xm250Idle[] = { { 64, 24 } };
+	static const AnimFrameDef xm250Move[] = { { 80, 26 }, { 84, 32 }, { 80, 32 }, { 80, 31 }, { 88, 32 }, { 76, 34 } };
+	static const AnimFrameDef xm250Shoot[] = { { 114, 26 }, { 84, 31 } };
 
 	LoadAnim(&g_EnemyAnim[WEAPON_XM250][ENEMY_STATE_IDLE], "Data/Enemy/XM250EnemyIdle.png", xm250Idle, ARRAY_COUNT(xm250Idle), 0.20f, false);
 	LoadAnim(&g_EnemyAnim[WEAPON_XM250][ENEMY_STATE_MOVE], "Data/Enemy/XM250EnemyMove.png", xm250Move, ARRAY_COUNT(xm250Move), 0.12f, true);

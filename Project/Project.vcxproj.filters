@@ -55,6 +55,9 @@
     <Filter Include="Source\Animation">
       <UniqueIdentifier>{c2e6581a-aa6b-4449-bf37-1760ea4dd7cb}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Aim">
+      <UniqueIdentifier>{96751ebd-e946-4005-9047-4a117abd0a18}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\BackGround\BackGround.cpp">
@@ -116,6 +119,9 @@
     </ClCompile>
     <ClCompile Include="Source\Enemy\EnemyNav.cpp">
       <Filter>Source\Enemy</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Aim\AimDisplay.cpp">
+      <Filter>Source\Aim</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -187,6 +193,9 @@
     </ClInclude>
     <ClInclude Include="Source\Enemy\EnemyNav.h">
       <Filter>Source\Enemy</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Aim\AimDisplay.h">
+      <Filter>Source\Aim</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

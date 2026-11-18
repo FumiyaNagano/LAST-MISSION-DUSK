@@ -1,5 +1,6 @@
 #include "DxLib.h"
 #include "Player.h"
+#include "../Aim/AimDisplay.h"
 #include "../Enemy/Enemy.h"
 #include "../Enemy/EnemyManager.h"
 #include "../FPS/FPS.h"
@@ -199,24 +200,32 @@ void StartPlayer()
 	PlayerEquipWeapon(WEAPON_MP5, 30, 90); // 確認用（拾う処理ができたら削除）
 }
 
+// 狙いが上向きか（上向き専用のアニメーション・銃口を使うか）
+static bool IsAimingUp(VECTOR aimDir)
+{
+	return aimDir.y < 0.0f && fabsf(aimDir.y) > fabsf(aimDir.x);
+}
+
+// 銃口の位置（右向きの値を基準に、左向きは左右を反転）
+static VECTOR GetPlayerMuzzle(bool facingLeft, bool shootUp)
+{
+	if (shootUp)
+	{
+		float dx = facingLeft ? -PLAYER_SHOT_OFFSET_UP_X : PLAYER_SHOT_OFFSET_UP_X;
+		return VGet(g_PlayerData.pos.x + PLAYER_WIDTH * 0.5f + dx, g_PlayerData.pos.y + PLAYER_SHOT_OFFSET_UP_Y, 0.0f);
+	}
+	if (facingLeft)
+	{
+		return VGet(g_PlayerData.pos.x + PLAYER_WIDTH - PLAYER_SHOT_OFFSET_X, g_PlayerData.pos.y + PLAYER_SHOT_OFFSET_Y, 0.0f);
+	}
+	return VGet(g_PlayerData.pos.x + PLAYER_SHOT_OFFSET_X, g_PlayerData.pos.y + PLAYER_SHOT_OFFSET_Y, 0.0f);
+}
+
 // プレイヤーの弾を1発撃つ（shootUp: 上向き射撃のアニメーションか）
 static void FirePlayerBullet(bool shootUp)
 {
 	// 銃口の位置（右向きの値を基準に、左向きは左右を反転）
-	VECTOR muzzle;
-	if (shootUp)
-	{
-		float dx = g_PlayerData.facingLeft ? -PLAYER_SHOT_OFFSET_UP_X : PLAYER_SHOT_OFFSET_UP_X;
-		muzzle = VGet(g_PlayerData.pos.x + PLAYER_WIDTH * 0.5f + dx, g_PlayerData.pos.y + PLAYER_SHOT_OFFSET_UP_Y, 0.0f);
-	}
-	else if (g_PlayerData.facingLeft)
-	{
-		muzzle = VGet(g_PlayerData.pos.x + PLAYER_WIDTH - PLAYER_SHOT_OFFSET_X, g_PlayerData.pos.y + PLAYER_SHOT_OFFSET_Y, 0.0f);
-	}
-	else
-	{
-		muzzle = VGet(g_PlayerData.pos.x + PLAYER_SHOT_OFFSET_X, g_PlayerData.pos.y + PLAYER_SHOT_OFFSET_Y, 0.0f);
-	}
+	VECTOR muzzle = GetPlayerMuzzle(g_PlayerData.facingLeft, shootUp);
 
 	// 銃口からカーソルへの向きを計算し直す
 	VECTOR dir = VSub(GetMousePosition(), muzzle);
@@ -236,6 +245,41 @@ static void FirePlayerBullet(bool shootUp)
 
 	// 発射SE
 	PlaySE(weapon->shotSE);
+}
+
+void DrawPlayerAim()
+{
+	VECTOR mouse = GetMousePosition();
+
+	if (g_PlayerData.active)
+	{
+		// 実際に弾を撃つ時と同じ手順で、銃口の位置と狙う方向を決める
+		bool facingLeft = g_PlayerData.facingLeft;
+		if (g_PlayerData.aimDir.x < 0.0f) facingLeft = true;
+		if (g_PlayerData.aimDir.x > 0.0f) facingLeft = false;
+
+		VECTOR muzzle = GetPlayerMuzzle(facingLeft, IsAimingUp(g_PlayerData.aimDir));
+
+		VECTOR dir = VSub(mouse, muzzle);
+		if (VSize(dir) < PLAYER_SHOT_MIN_AIM_DISTANCE)
+		{
+			dir = g_PlayerData.aimDir;
+		}
+		else
+		{
+			dir = VNorm(dir);
+		}
+
+		const WeaponDef* weapon = GetWeaponDef(g_PlayerData.gun.type);
+		bool reloading = WeaponIsReloading(&g_PlayerData.gun);
+
+		DrawAimLaser(muzzle, dir, weapon->bulletRadius * 2.0f, reloading);
+		DrawCrosshair(mouse, reloading ? WeaponReloadProgress(&g_PlayerData.gun) : -1.0f);
+	}
+	else
+	{
+		DrawCrosshair(mouse, -1.0f);	// 死亡後も狙う位置は分かるように、クロスヘアだけ出す
+	}
 }
 
 void StepPlayer()
