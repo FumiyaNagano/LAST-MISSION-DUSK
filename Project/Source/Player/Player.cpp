@@ -22,7 +22,7 @@
 // プレイヤー設定関連
 #define PLAYER_DEFAULT_POS_X (100.0f)
 #define PLAYER_DEFAULT_POS_Y (300.0f)
-#define PLAYER_INVINCIBLE_TIME (1.0f)
+#define PLAYER_INVINCIBLE_TIME (3.0f)
 // 1秒あたりの移動速度（ピクセル/秒）
 #define PLAYER_MOVE_SPEED (240.0f)
 // 射撃アニメーションを表示する残り時間（秒）
@@ -185,7 +185,6 @@ void StartPlayer()
 	g_ShotBufferTimer = 0.0f;
 
 	WeaponStateInitFull(&g_PlayerData.gun, WEAPON_DEFAULT);
-	PlayerEquipWeapon(WEAPON_MP5, 30, 90);	// 確認用（拾う処理ができたら削除）
 
 	// アニメーションを初期状態に戻す
 	g_PlayerData.state = PLAYER_STATE_IDLE;
@@ -196,8 +195,6 @@ void StartPlayer()
 	//char text[256];
 	//sprintf_s(text, PLAYER_HP_STRING, g_PlayerData.hp);
 	//g_PlayerData.hpText = CreateUIText(60.0f, 900.0f, text);
-
-	PlayerEquipWeapon(WEAPON_MP5, 30, 90); // 確認用（拾う処理ができたら削除）
 }
 
 // 狙いが上向きか（上向き専用のアニメーション・銃口を使うか）
@@ -241,7 +238,7 @@ static void FirePlayerBullet(bool shootUp)
 	const WeaponDef* weapon = GetWeaponDef(g_PlayerData.gun.type);
 
 	//FireBullet(BULLET_OWNER_PLAYER, muzzle, dir, PLAYER_DEFAULT_SHOT_SPEED, PLAYER_SHOT_LIFE, PLAYER_BULLET_RADIUS);
-	FireBullet(BULLET_OWNER_PLAYER, muzzle, dir, weapon->bulletSpeed, weapon->bulletLife, weapon->bulletRadius, weapon->damage);
+	FireBullet(BULLET_OWNER_PLAYER, muzzle, dir, weapon->bulletSpeed, weapon->bulletLife, weapon->bulletRadius, weapon->playerDamage);
 
 	// 発射SE
 	PlaySE(weapon->shotSE);
@@ -384,27 +381,6 @@ void StepPlayer()
 			}
 		}
 	}
-
-	SetPlayerState(nextState);
-
-	// デバッグ: Kキーで敵の弾を発射（確認後に削除）
-	static bool prevK = false;
-	bool nowK = (CheckHitKey(KEY_INPUT_K) != 0);
-	if (nowK && !prevK)
-	{
-		FireBullet(BULLET_OWNER_ENEMY, VGet(1800.0f, g_PlayerData.pos.y + 50.0f, 0.0f),
-			VGet(-1.0f, 0.0f, 0.0f), 600.0f, 10.0f, 8.0f, 10);
-	}
-	prevK = nowK;
-	// デバッグ: Gキーで武器をドロップ（確認後に削除）
-	static bool prevG = false;
-	bool nowG = (CheckHitKey(KEY_INPUT_G) != 0);
-	if (nowG && !prevG)
-	{
-		SpawnWeaponDrop(WEAPON_M1_GARAND, 8, 72,
-			VGet(g_PlayerData.pos.x + 250.0f, g_PlayerData.pos.y + 50.0f, 0.0f), true);
-	}
-	prevG = nowG;
 
 	SetPlayerState(nextState);
 }

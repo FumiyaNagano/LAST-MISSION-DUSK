@@ -35,7 +35,8 @@ struct WeaponDef
 	float bulletSpeed;	// 弾速（ピクセル/秒）
 	float bulletLife;	// 弾の寿命（秒）
 	float bulletRadius;	// 弾の当たり判定の半径
-	int damage;			// 1発のダメージ
+	int damage;			// 敵が撃つとき、プレイヤーに与える1発のダメージ
+	int playerDamage;	// プレイヤーが撃つとき、敵に与える1発のダメージ
 	int magazineSize;	// 装弾数（弾倉の大きさ）
 	int reserveMax;		// 予備弾の最大数（WEAPON_AMMO_INFINITEなら無限）
 	float reloadTime;	// リロードにかかる時間（秒）

@@ -38,6 +38,7 @@ struct EnemyData
 	float stopDistance;		// プレイヤーとの距離がこれ以下になると止まる（ピクセル）
 	float aimSpread;		// 照準のばらつき（ラジアン）
 	WeaponState gun;		// 持っている武器と弾数・リロード状態（倒すとドロップする）
+	float fireIntervalScale;	// 発射間隔の倍率（出現したときの段階で決まる。大きいほど、ゆっくり撃つ）
 	bool facingLeft;		// 左向きか（画像は右向きが基準）
 	EnemyState state;
 	AnimPlayer anim;

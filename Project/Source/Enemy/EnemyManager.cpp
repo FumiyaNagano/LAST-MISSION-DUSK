@@ -32,8 +32,6 @@
 #define ENEMY_NAV_DEBUG_DRAW	(0)
 
 // 出現関連
-#define ENEMY_SPAWN_INTERVAL	(3.0f)		// 出現の間隔（秒）
-#define ENEMY_ALIVE_MAX			(5)			// 同時に存在させる敵の上限
 #define ENEMY_SPAWN_MARGIN		(80.0f)		// 画面の外側にどれだけ離して出現させるか
 #define ENEMY_FIRST_SPAWN_TIME	(1.0f)		// 開始から最初の出現までの時間（秒）
 
@@ -62,21 +60,26 @@ static const EnemyDef g_EnemyDefs[ENEMY_TYPE_NUM] =
 	{ 46.0f, 100.0f, 30, 100.0f, 300.0f, 3.0f, 10 },	// ソルジャー
 };
 
-// 経過時間に応じて、出現する敵が持つ武器を段階的に強くする
+// 経過時間に応じて、出現する敵の武器と、出現の仕方を段階的に変える
 struct EnemyWeaponStage
 {
-	float startTime;		// ゲーム開始からの経過時間（秒）がこれ以上で有効
-	WeaponType weapon;
+	float startTime;			// ゲーム開始からの経過時間（秒）がこれ以上で有効
+	WeaponType weapon;			// 出現する敵が持つ武器
+	int maxAlive;				// 同時に存在させる敵の上限
+	float spawnInterval;		// 出現の間隔（秒）
+	float fireIntervalScale;	// 敵の発射間隔の倍率（1.0で武器どおり。2.0なら、半分の速さで撃つ）
 };
 
+// 難易度の調整は、主にこの表で行う。
+//   敵1体の火力は「武器の性能 ÷ 発射間隔の倍率」、全体の火力は「それ x 同時に存在する数」で決まる
 static const EnemyWeaponStage g_WeaponStages[] =
 {
-	//  開始時間  武器
-	{   0.0f, WEAPON_KAR98K },
-	{  60.0f, WEAPON_M1_GARAND },
-	{ 120.0f, WEAPON_MP5 },
-	{ 180.0f, WEAPON_M4A1 },
-	{ 240.0f, WEAPON_XM250 },
+	//  開始時間  武器              同時数 出現間隔 発射間隔の倍率
+	{   0.0f, WEAPON_KAR98K,    8,   3.0f,   1.0f },
+	{  60.0f, WEAPON_M1_GARAND, 7,   3.0f,   2.0f },
+	{ 120.0f, WEAPON_MP5,       4,   3.5f,   3.0f },
+	{ 180.0f, WEAPON_M4A1,      4,   3.5f,   3.0f },
+	{ 240.0f, WEAPON_XM250,     3,   4.0f,   2.5f },
 };
 
 static EnemyData g_EnemyData[ENEMY_MAX] = {};
@@ -93,18 +96,18 @@ static float g_EnemySpawnTimer = 0.0f;
 // 補助関数
 // ------------------------------------------------------------------------------------------------
 
-// 経過時間に応じた、出現時の武器を返す
-static WeaponType GetStageWeapon(float elapsed)
+// 経過時間に応じた、現在の段階を返す
+static const EnemyWeaponStage* GetStage(float elapsed)
 {
-	WeaponType weapon = g_WeaponStages[0].weapon;
+	const EnemyWeaponStage* stage = &g_WeaponStages[0];
 	for (int i = 0; i < ARRAY_COUNT(g_WeaponStages); i++)
 	{
 		if (elapsed >= g_WeaponStages[i].startTime)
 		{
-			weapon = g_WeaponStages[i].weapon;
+			stage = &g_WeaponStages[i];
 		}
 	}
-	return weapon;
+	return stage;
 }
 
 // 武器と状態に対応する画像を返す。未登録なら、Kar98kの同じ状態→待機の順で代用する
@@ -182,7 +185,12 @@ static void SpawnEnemyAtEdge()
 		break;
 	}
 
-	SpawnEnemy(ENEMY_TYPE_SOLDIER, GetStageWeapon(g_EnemyElapsedTime), x, y);
+	const EnemyWeaponStage* stage = GetStage(g_EnemyElapsedTime);
+	EnemyData* e = SpawnEnemy(ENEMY_TYPE_SOLDIER, stage->weapon, x, y);
+	if (e != nullptr)
+	{
+		e->fireIntervalScale = stage->fireIntervalScale;
+	}
 }
 
 // 銃口の位置（敵の矩形の中心からの距離。右向きを基準に、左向きは左右反転）
@@ -313,6 +321,9 @@ static void UpdateEnemyAI(EnemyData* e, float dt)
 	{
 		FireEnemyBullet(e, playerCenter);
 		e->shootTimer = ENEMY_SHOOT_ANIM_TIME;
+
+		// 発射間隔の倍率：WeaponTryFire が足した1回分に、残りの分を足す
+		e->gun.intervalTimer += def->interval * (e->fireIntervalScale - 1.0f);
 	}
 
 	// 見た目の状態：射撃 > 移動 > 待機
@@ -423,11 +434,12 @@ void UpdateEnemy()
 	g_EnemySpawnTimer -= dt;
 	if (g_EnemySpawnTimer <= 0.0f)
 	{
-		if (CountAliveEnemies() < ENEMY_ALIVE_MAX)
+		const EnemyWeaponStage* stage = GetStage(g_EnemyElapsedTime);
+		if (CountAliveEnemies() < stage->maxAlive)
 		{
 			SpawnEnemyAtEdge();
 		}
-		g_EnemySpawnTimer += ENEMY_SPAWN_INTERVAL;
+		g_EnemySpawnTimer += stage->spawnInterval;
 	}
 
 	for (int i = 0; i < ENEMY_MAX; i++)
@@ -566,6 +578,7 @@ EnemyData* SpawnEnemy(EnemyType type, WeaponType weapon, float x, float y)
 		ResetAnimPlayer(&e->anim);
 		e->shootTimer = 0.0f;
 		e->sightTimer = 0.0f;
+		e->fireIntervalScale = 1.0f;
 		e->hitFlashTimer = 0.0f;
 		return e;
 	}
