@@ -20,9 +20,9 @@
 #define PLAYER_HP_STRING ("%d")
 
 // プレイヤー設定関連
-#define PLAYER_DEFAULT_POS_X (100.0f)
-#define PLAYER_DEFAULT_POS_Y (300.0f)
-#define PLAYER_INVINCIBLE_TIME (3.0f)	// 被弾後の無敵時間（秒）。今は弾も接触も共通。弾は0秒、接触は1秒に分けると、連射武器の火力が活きる
+#define PLAYER_DEFAULT_POS_X (650.0f)
+#define PLAYER_DEFAULT_POS_Y (175.0f)
+#define PLAYER_INVINCIBLE_TIME (2.5f)	// 被弾後の無敵時間（秒）。今は弾も接触も共通。弾は0秒、接触は1秒に分けると、連射武器の火力が活きる
 // 1秒あたりの移動速度（ピクセル/秒）
 #define PLAYER_MOVE_SPEED (240.0f)
 // 射撃アニメーションを表示する残り時間（秒）

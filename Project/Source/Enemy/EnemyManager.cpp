@@ -56,7 +56,7 @@ struct EnemyDef
 
 static const EnemyDef g_EnemyDefs[ENEMY_TYPE_NUM] =
 {
-	//  幅      高さ    HP  速度   停止距離 ばらつき 接触ダメ
+	//  幅   高さ    HP  速度   停止距離 ばらつき 接触ダメ
 	{ 46.0f, 100.0f, 30, 100.0f, 300.0f, 3.0f, 10 },	// ソルジャー
 };
 
@@ -74,12 +74,12 @@ struct EnemyWeaponStage
 //   敵1体の火力は「武器の性能 ÷ 発射間隔の倍率」、全体の火力は「それ x 同時に存在する数」で決まる
 static const EnemyWeaponStage g_WeaponStages[] =
 {
-	//  開始時間  武器              同時数 出現間隔 発射間隔の倍率
-	{   0.0f, WEAPON_KAR98K,    8,   3.0f,   1.0f },
-	{  60.0f, WEAPON_M1_GARAND, 7,   3.0f,   2.0f },
-	{ 120.0f, WEAPON_MP5,       4,   3.5f,   3.0f },
-	{ 180.0f, WEAPON_M4A1,      4,   3.5f,   3.0f },
-	{ 240.0f, WEAPON_XM250,     3,   4.0f,   2.5f },
+	//  開始時間  武器       同時数 出現間隔 発射間隔の倍率
+	{   0.0f, WEAPON_KAR98K,    8,   2.0f,   1.0f },
+	{  60.0f, WEAPON_M1_GARAND, 7,   2.0f,   2.0f },
+	{ 120.0f, WEAPON_MP5,       4,   3.0f,   3.0f },
+	{ 180.0f, WEAPON_M4A1,      4,   3.0f,   3.0f },
+	{ 240.0f, WEAPON_XM250,     4,   4.0f,   2.5f },
 };
 
 static EnemyData g_EnemyData[ENEMY_MAX] = {};
