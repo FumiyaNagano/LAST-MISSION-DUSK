@@ -20,9 +20,9 @@
 #define PLAYER_HP_STRING ("%d")
 
 // プレイヤー設定関連
-#define PLAYER_DEFAULT_POS_X (650.0f)
-#define PLAYER_DEFAULT_POS_Y (175.0f)
-#define PLAYER_INVINCIBLE_TIME (2.5f)	// 被弾後の無敵時間（秒）。今は弾も接触も共通。弾は0秒、接触は1秒に分けると、連射武器の火力が活きる
+#define PLAYER_DEFAULT_POS_X (100.0f)
+#define PLAYER_DEFAULT_POS_Y (300.0f)
+#define PLAYER_INVINCIBLE_TIME (3.0f)	// 被弾後の無敵時間（秒）。今は弾も接触も共通。弾は0秒、接触は1秒に分けると、連射武器の火力が活きる
 // 1秒あたりの移動速度（ピクセル/秒）
 #define PLAYER_MOVE_SPEED (240.0f)
 // 射撃アニメーションを表示する残り時間（秒）
@@ -48,11 +48,7 @@
 
 // プレイヤーのHP
 #define PLAYER_HP (100)
-//#define PLAYER_HP (10000)	// デバッグ用HP設定（注意：自動回復の速さは PLAYER_HP / PLAYER_REGEN_TIME で決まるため、バランス確認のときは100に戻す）
-// 自動回復 : 最後に被弾してから回復が始まるまでの時間（秒）
-#define PLAYER_REGEN_DELAY (4.0f)
-// 自動回復 : HPが0から満タンまで回復するのにかかる時間（秒）
-#define PLAYER_REGEN_TIME (4.0f)
+//#define PLAYER_HP (10000)	// デバッグ用HP設定（バランス確認のときは、100に戻す。回復アイテムの回復量や、ドロップ確率の基準は、HP100を想定している）
 
 // プレイヤー死亡エフェクトインターバル
 #define PLAYER_DEAD_EFFECT_INTERVAL (2)
@@ -138,52 +134,6 @@ static void UpdatePlayerAnim()
 }
 
 // ------------------------------------------------------------------------------------------------
-// 自動回復（UpdatePlayer や PlayerTakeDamage から使うため、それらより前に置く）
-// ------------------------------------------------------------------------------------------------
-// 被弾した時 : 回復を中断して、回復が始まるまでの時間をやり直す
-static void InterruptRegen()
-{
-	g_PlayerData.regenDelayTimer = PLAYER_REGEN_DELAY;
-	g_PlayerData.regenBuffer = 0.0f;
-}
-
-static void UpdatePlayerRegen(float dt)
-{
-	// 死亡中、または満タンの時は回復しない
-	if (g_PlayerData.hp <= 0 || g_PlayerData.hp >= PLAYER_HP)
-	{
-		g_PlayerData.regenBuffer = 0.0f;
-		return;
-	}
-
-	// 最後の被弾から一定時間は回復しない
-	if (g_PlayerData.regenDelayTimer > 0.0f)
-	{
-		g_PlayerData.regenDelayTimer -= dt;
-		return;
-	}
-
-	// HPは整数なので、回復量の小数部分はためておく
-	g_PlayerData.regenBuffer += (float)PLAYER_HP / PLAYER_REGEN_TIME * dt;
-	int heal = (int)g_PlayerData.regenBuffer;
-	if (heal > 0)
-	{
-		g_PlayerData.hp += heal;
-		g_PlayerData.regenBuffer -= (float)heal;
-		if (g_PlayerData.hp >= PLAYER_HP)	// 比較は「>=」。「=」と書くと代入になり、一瞬で満タンになる
-		{
-			g_PlayerData.hp = PLAYER_HP;
-			g_PlayerData.regenBuffer = 0.0f;
-		}
-	}
-}
-
-bool PlayerIsRegenerating()
-{
-	return g_PlayerData.active && g_PlayerData.hp > 0 && g_PlayerData.hp < PLAYER_HP && g_PlayerData.regenDelayTimer <= 0.0f;
-}
-
-// ------------------------------------------------------------------------------------------------
 // プレイヤー本体
 // ------------------------------------------------------------------------------------------------
 void InitPlayer()
@@ -197,8 +147,6 @@ void InitPlayer()
 	g_PlayerData.animTimer = 0.0f;
 	g_PlayerData.active = false;
 	g_PlayerData.invincibleTimer = 0.0f;
-	g_PlayerData.regenDelayTimer = 0.0f;
-	g_PlayerData.regenBuffer = 0.0f;
 	g_PlayerData.aimDir = VGet(1.0f, 0.0f, 0.0f);
 	g_PlayerData.shootTimer = 0.0f;
 	g_PlayerData.facingLeft = false;
@@ -234,10 +182,8 @@ void StartPlayer()
 	// HPの初期値設定
 	g_PlayerData.hp = PLAYER_HP;
 
-	// 無敵時間と、自動回復の状態をリセットする（やり直したときに、前回の状態が残らないように）
+	// 無敵時間をリセットする（やり直したときに、前回の状態が残らないように）
 	g_PlayerData.invincibleTimer = 0.0f;
-	g_PlayerData.regenDelayTimer = 0.0f;
-	g_PlayerData.regenBuffer = 0.0f;
 
 	g_ShotBufferTimer = 0.0f;
 
@@ -446,8 +392,6 @@ void UpdatePlayer()
 {
 	if (!g_PlayerData.active) return;
 
-	UpdatePlayerRegen(GetDeltaTime());
-
 	// 無敵時間を減らす
 	if (g_PlayerData.invincibleTimer > 0.0f)
 	{
@@ -602,9 +546,23 @@ void PlayerTakeDamage(int damage)
 	}
 	else
 	{
-		InterruptRegen();
 		g_PlayerData.invincibleTimer = PLAYER_INVINCIBLE_TIME;
 	}
+}
+
+bool PlayerHeal(int amount)
+{
+	if (!g_PlayerData.active) return false;
+	if (g_PlayerData.hp >= PLAYER_HP) return false;	// 満タンのときは、使わない（回復アイテムは地面に残る）
+
+	g_PlayerData.hp += amount;
+	if (g_PlayerData.hp > PLAYER_HP) g_PlayerData.hp = PLAYER_HP;
+	return true;
+}
+
+int PlayerGetMaxHp()
+{
+	return PLAYER_HP;
 }
 
 void PlayerEquipWeapon(WeaponType type, int magazine, int reserve)

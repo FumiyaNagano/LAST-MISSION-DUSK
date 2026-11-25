@@ -6,6 +6,9 @@
 #include "../Player/Player.h"
 #include <math.h>
 
+// 画像の読み込み状況を、画面の左側に表示する確認用スイッチ（確認できたら0にする）
+#define WEAPON_DROP_DEBUG_DISPLAY	(0)
+
 // 画像がない武器の、見た目と判定の大きさ（仮の四角）。画像がある武器も、これより小さくはならない
 #define WEAPON_DROP_WIDTH		(64.0f)
 #define WEAPON_DROP_HEIGHT		(32.0f)
@@ -26,15 +29,15 @@
 #define WEAPON_DROP_BOB_HEIGHT	(3.0f)
 #define WEAPON_DROP_BOB_SPEED	(4.0f)
 
-// ドロップした武器の画像。実際のファイル名に合わせて書き換える（nullptrなら仮の四角で表示）
+// ドロップした武器の画像。nullptrなら仮の四角で表示
 static const char* g_DropImagePaths[WEAPON_NUM] =
 {
 	nullptr,							// ピストル（予備武器なので落とさない）
-	"Data/Weapon/Kar98k_Test.png",		// Kar98k
-	"Data/Weapon/M1Garand_Test.png",	// M1 Garand
-	"Data/Weapon/MP5_Test.png",			// MP5
-	"Data/Weapon/M4A1_Test.png",		// M4A1
-	"Data/Weapon/XM250_Test.png",		// XM250
+	"Data/Weapon/Kar98k.png",		// Kar98k
+	"Data/Weapon/M1Garand.png",	// M1 Garand
+	"Data/Weapon/MP5.png",			// MP5
+	"Data/Weapon/M4A1.png",		// M4A1
+	"Data/Weapon/XM250.png",		// XM250
 };
 
 // 画像がない武器の、仮表示の色
@@ -49,6 +52,37 @@ static const int g_DropColors[WEAPON_NUM][3] =
 };
 
 static WeaponDropData g_Drops[WEAPON_DROP_MAX] = {};
+
+// ---- 回復アイテム ----
+// 見た目と判定の大きさ（画像がない間は、仮の四角と十字）
+#define HEAL_DROP_WIDTH			(40.0f)
+#define HEAL_DROP_HEIGHT		(40.0f)
+// 画像の倍率
+#define HEAL_DROP_IMAGE_SCALE	(1.0f)
+
+// 回復アイテムの画像。実際のファイル名に合わせて書き換える（nullptrなら、仮の四角と十字で表示）
+static const char* g_HealImagePath = "Data/Weapon/MedicalKit.png";	// 例: "Data/Item/HealItem.png"
+
+static HealDropData g_HealDrops[HEAL_DROP_MAX] = {};
+static bool  g_HealHasImage = false;
+static int   g_HealImage = 0;
+static float g_HealImageW = 0.0f;
+static float g_HealImageH = 0.0f;
+
+// 拾える範囲の大きさ（画像があれば画像の大きさ、なければ仮の四角。最小は仮の四角と同じ）
+static void GetHealSize(float* w, float* h)
+{
+	*w = HEAL_DROP_WIDTH;
+	*h = HEAL_DROP_HEIGHT;
+	if (g_HealHasImage)
+	{
+		if (g_HealImageW > *w) *w = g_HealImageW;
+		if (g_HealImageH > *h) *h = g_HealImageH;
+	}
+}
+
+// LoadWeaponDrop が呼ばれた回数（確認用）
+static int g_DropLoadCallCount = 0;
 
 // 画像の情報（武器ごと）
 static bool  g_DropHasImage[WEAPON_NUM] = {};	// 画像を読み込めたか
@@ -76,10 +110,16 @@ void InitWeaponDrop()
 	{
 		g_Drops[i].active = false;
 	}
+	for (int i = 0; i < HEAL_DROP_MAX; i++)
+	{
+		g_HealDrops[i].active = false;
+	}
 }
 
 void LoadWeaponDrop()
 {
+	g_DropLoadCallCount++;
+
 	for (int t = 0; t < WEAPON_NUM; t++)
 	{
 		g_DropHasImage[t] = false;
@@ -103,6 +143,26 @@ void LoadWeaponDrop()
 		g_DropImageH[t] = (float)h * scale;
 		g_DropHasImage[t] = true;
 	}
+
+	// 回復アイテムの画像
+	g_HealHasImage = false;
+	if (g_HealImagePath != nullptr)
+	{
+		int handle = LoadGraph(g_HealImagePath);
+		if (handle == -1)
+		{
+			printfDx("画像の読み込みに失敗: %s\n", g_HealImagePath);
+		}
+		else
+		{
+			int w = 0, h = 0;
+			GetGraphSize(handle, &w, &h);
+			g_HealImage = handle;
+			g_HealImageW = (float)w * HEAL_DROP_IMAGE_SCALE;
+			g_HealImageH = (float)h * HEAL_DROP_IMAGE_SCALE;
+			g_HealHasImage = true;
+		}
+	}
 }
 
 void StartWeaponDrop()
@@ -119,6 +179,12 @@ void FinWeaponDrop()
 			DeleteGraph(g_DropImage[t]);
 			g_DropHasImage[t] = false;
 		}
+	}
+
+	if (g_HealHasImage)
+	{
+		DeleteGraph(g_HealImage);
+		g_HealHasImage = false;
 	}
 }
 
@@ -164,6 +230,43 @@ WeaponDropData* GetWeaponDrop(int index)
 	return &g_Drops[index];
 }
 
+HealDropData* SpawnHealDrop(int amount, VECTOR pos)
+{
+	// 空きを探す。なければ、残り時間が最も短いものを使う
+	HealDropData* slot = nullptr;
+	for (int i = 0; i < HEAL_DROP_MAX; i++)
+	{
+		if (!g_HealDrops[i].active)
+		{
+			slot = &g_HealDrops[i];
+			break;
+		}
+		if (slot == nullptr || g_HealDrops[i].life < slot->life)
+		{
+			slot = &g_HealDrops[i];
+		}
+	}
+
+	// 画面の外に落ちないように、位置を画面の内側へ収める
+	if (pos.x < WEAPON_DROP_SCREEN_MARGIN) pos.x = WEAPON_DROP_SCREEN_MARGIN;
+	if (pos.x > SCREEN_WIDTH - WEAPON_DROP_SCREEN_MARGIN) pos.x = SCREEN_WIDTH - WEAPON_DROP_SCREEN_MARGIN;
+	if (pos.y < WEAPON_DROP_SCREEN_MARGIN) pos.y = WEAPON_DROP_SCREEN_MARGIN;
+	if (pos.y > SCREEN_HEIGHT - WEAPON_DROP_SCREEN_MARGIN) pos.y = SCREEN_HEIGHT - WEAPON_DROP_SCREEN_MARGIN;
+
+	slot->active = true;
+	slot->pos = pos;
+	slot->amount = amount;
+	slot->life = WEAPON_DROP_LIFE;
+	slot->age = 0.0f;
+	return slot;
+}
+
+HealDropData* GetHealDrop(int index)
+{
+	if (index < 0 || index >= HEAL_DROP_MAX) return nullptr;
+	return &g_HealDrops[index];
+}
+
 void UpdateWeaponDrop()
 {
 	float dt = GetDeltaTime();
@@ -207,10 +310,50 @@ void UpdateWeaponDrop()
 			*d = copy;
 		}
 	}
+
+	// ---- 回復アイテム ----
+	for (int i = 0; i < HEAL_DROP_MAX; i++)
+	{
+		HealDropData* d = &g_HealDrops[i];
+		if (!d->active) continue;
+
+		d->age += dt;
+		d->life -= dt;
+		if (d->life <= 0.0f)
+		{
+			d->active = false;
+			continue;
+		}
+
+		float w = 0.0f, h = 0.0f;
+		GetHealSize(&w, &h);
+		bool touching = p->active && CheckRectRect(
+			p->pos.x, p->pos.y, PLAYER_WIDTH, PLAYER_HEIGHT,
+			d->pos.x - w * 0.5f, d->pos.y - h * 0.5f, w, h);
+
+		if (!touching) continue;
+
+		// 拾う。HPが満タンのときは拾えず、地面に残る（あとで減ったときに拾える）
+		if (PlayerHeal(d->amount))
+		{
+			d->active = false;
+		}
+	}
 }
 
 void DrawWeaponDrop()
 {
+#if WEAPON_DROP_DEBUG_DISPLAY
+	DrawFormatString(0, 240, GetColor(255, 255, 0), "WeaponDrop load calls: %d", g_DropLoadCallCount);
+	for (int t = 1; t < WEAPON_NUM; t++)
+	{
+		DrawFormatString(0, 240 + t * 20, GetColor(255, 255, 0), "%s image: %s  (%s)",
+			GetWeaponDef((WeaponType)t)->name,
+			g_DropHasImage[t] ? "OK" : "NONE",
+			g_DropImagePaths[t] ? g_DropImagePaths[t] : "no path");
+	}
+#endif
+
 	for (int i = 0; i < WEAPON_DROP_MAX; i++)
 	{
 		const WeaponDropData* d = &g_Drops[i];
@@ -245,6 +388,43 @@ void DrawWeaponDrop()
 		int tx = (int)(cx - w * 0.5f);
 		DrawString(tx, (int)(cy - h * 0.5f) - 18, GetWeaponDef(d->type)->name, GetColor(255, 255, 255));
 		DrawFormatString(tx, (int)(cy + h * 0.5f) + 2, GetColor(255, 255, 255), "%d", d->magazine + d->reserve);
+	}
+
+	// ---- 回復アイテム ----
+	for (int i = 0; i < HEAL_DROP_MAX; i++)
+	{
+		const HealDropData* d = &g_HealDrops[i];
+		if (!d->active) continue;
+
+		// 消える直前は点滅
+		if (d->life < WEAPON_DROP_BLINK_TIME && ((int)(d->life * 8.0f)) % 2 == 0) continue;
+
+		float w = 0.0f, h = 0.0f;
+		GetHealSize(&w, &h);
+
+		float bob = sinf(d->age * WEAPON_DROP_BOB_SPEED) * WEAPON_DROP_BOB_HEIGHT;
+		float cx = d->pos.x;
+		float cy = d->pos.y + bob;
+
+		if (g_HealHasImage)
+		{
+			DrawRotaGraphF(cx, cy, (double)HEAL_DROP_IMAGE_SCALE, 0.0, g_HealImage, TRUE);
+		}
+		else
+		{
+			// 画像がないときは、緑の四角に白い十字で代用
+			int x1 = (int)(cx - w * 0.5f);
+			int y1 = (int)(cy - h * 0.5f);
+			int mx = (int)cx;
+			int my = (int)cy;
+			DrawBox(x1, y1, x1 + (int)w, y1 + (int)h, GetColor(40, 160, 70), TRUE);
+			DrawBox(x1, y1, x1 + (int)w, y1 + (int)h, GetColor(255, 255, 255), FALSE);
+			DrawBox(mx - 3, my - 12, mx + 3, my + 12, GetColor(255, 255, 255), TRUE);
+			DrawBox(mx - 12, my - 3, mx + 12, my + 3, GetColor(255, 255, 255), TRUE);
+		}
+
+		// 回復量
+		DrawFormatString((int)(cx - w * 0.5f), (int)(cy - h * 0.5f) - 18, GetColor(180, 255, 180), "+%d", d->amount);
 	}
 }
 

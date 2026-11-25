@@ -67,7 +67,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 
 		// デバッグ用
 		DrawFormatString(0, 60, GetColor(255, 255, 255), "HP: %d  inv: %.2f",
-			GetPlayer()->hp, PlayerIsRegenerating() ? "(回復中)" : "", GetPlayer()->invincibleTimer);
+			GetPlayer()->hp, GetPlayer()->invincibleTimer);
 		int dropCount = 0;
 		for (int i = 0; i < WEAPON_DROP_MAX; i++)
 		{

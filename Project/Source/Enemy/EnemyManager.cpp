@@ -16,7 +16,13 @@
 // 画面外に出てから消すまでの余白（ピクセル）
 #define ENEMY_OUT_MARGIN		(200.0f)
 
-// 倒したときにドロップする予備弾の割合（1.0なら、その武器の予備弾が満タン）
+// 倒したときのドロップ：「武器」「回復アイテム」「何も落とさない」のどれか1つが、確率で決まる
+#define ENEMY_DROP_WEAPON_CHANCE		(0.15f)		// 武器を落とす確率（0.0〜1.0）
+#define ENEMY_DROP_HEAL_CHANCE			(0.12f)		// 回復アイテムを落とす確率（プレイヤーのHPが満タンのときの値）
+#define ENEMY_DROP_HEAL_LOW_HP_BONUS	(1.0f)		// HPが減っているほど、回復アイテムが落ちやすくなる。HP0で、確率が（1 + この値）倍。0で無効
+#define ENEMY_DROP_HEAL_AMOUNT			(30)		// 回復アイテム1個の回復量
+
+// ドロップする武器の予備弾の割合（1.0なら、その武器の予備弾が満タン）
 #define ENEMY_DROP_RESERVE_RATIO	(1.0f)
 
 // 被弾時の白点滅の長さ（秒）
@@ -56,7 +62,7 @@ struct EnemyDef
 
 static const EnemyDef g_EnemyDefs[ENEMY_TYPE_NUM] =
 {
-	//  幅   高さ    HP  速度   停止距離 ばらつき 接触ダメ
+	//  幅      高さ    HP  速度   停止距離 ばらつき 接触ダメ
 	{ 46.0f, 100.0f, 30, 100.0f, 300.0f, 3.0f, 10 },	// ソルジャー
 };
 
@@ -139,19 +145,40 @@ static int CountAliveEnemies()
 	return count;
 }
 
-// 敵を倒したときの処理
+// 敵を倒したときの処理：確率で、武器か回復アイテムをその場にドロップする
 static void KillEnemy(EnemyData* e)
 {
 	e->active = false;
 
-	// 持っていた武器をその場にドロップする（予備弾が無限の武器は、落としても意味がないので落とさない）
-	WeaponType type = e->gun.type;
-	if (WeaponCanDrop(type))
+	VECTOR center = VGet(e->pos.x + e->width * 0.5f, e->pos.y + e->height * 0.5f, 0.0f);
+
+	// 0.0〜0.9999 のくじを1回引き、区間で「武器」「回復アイテム」「なし」を決める（同時には落ちない）
+	float roll = (float)GetRand(9999) / 10000.0f;
+
+	// 武器（予備弾が無限の武器は、落としても意味がないので落とさない）
+	if (roll < ENEMY_DROP_WEAPON_CHANCE)
 	{
-		const WeaponDef* def = GetWeaponDef(type);
-		int reserve = (int)((float)def->reserveMax * ENEMY_DROP_RESERVE_RATIO);
-		VECTOR center = VGet(e->pos.x + e->width * 0.5f, e->pos.y + e->height * 0.5f, 0.0f);
-		SpawnWeaponDrop(type, def->magazineSize, reserve, center, true);
+		WeaponType type = e->gun.type;
+		if (WeaponCanDrop(type))
+		{
+			const WeaponDef* def = GetWeaponDef(type);
+			int reserve = (int)((float)def->reserveMax * ENEMY_DROP_RESERVE_RATIO);
+			SpawnWeaponDrop(type, def->magazineSize, reserve, center, true);
+		}
+		return;
+	}
+	roll -= ENEMY_DROP_WEAPON_CHANCE;
+
+	// 回復アイテム：プレイヤーのHPが減っているほど、落ちやすい
+	const PlayerData* p = GetPlayer();
+	float hpRatio = (float)p->hp / (float)PlayerGetMaxHp();
+	if (hpRatio < 0.0f) hpRatio = 0.0f;
+	if (hpRatio > 1.0f) hpRatio = 1.0f;
+
+	float healChance = ENEMY_DROP_HEAL_CHANCE * (1.0f + (1.0f - hpRatio) * ENEMY_DROP_HEAL_LOW_HP_BONUS);
+	if (roll < healChance)
+	{
+		SpawnHealDrop(ENEMY_DROP_HEAL_AMOUNT, center);
 	}
 }
 
@@ -357,9 +384,9 @@ void InitEnemy()
 void LoadEnemy()
 {
 	// 各コマの {幅, 体の中心x}。画像編集ソフトで測った値を入れる。
-	// 幅の合計 = 画像の横幅 になっていること（Debugビルドで合っていないと警告が出る）
-	// 読み込んでいない武器・状態は、Kar98kの画像で代用される。
-	// Kar98kEnemyアニメーション
+// 幅の合計 = 画像の横幅 になっていること（Debugビルドで合っていないと警告が出る）
+// 読み込んでいない武器・状態は、Kar98kの画像で代用される。
+// Kar98kEnemyアニメーション
 	static const AnimFrameDef kar98kIdle[] = { { 58, 24 } };
 	static const AnimFrameDef kar98kMove[] = { { 72, 30 }, {76, 33}, { 84, 30 }, { 80, 32 }, { 82, 28 } };
 	static const AnimFrameDef kar98kShoot[] = { { 142, 29 }, { 120, 42 } };

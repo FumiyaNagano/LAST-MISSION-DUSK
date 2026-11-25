@@ -34,3 +34,26 @@ WeaponDropData* GetWeaponDrop(int index);
 
 // 武器の画像を読み込めているか（確認用）
 bool WeaponDropHasImage(WeaponType type);
+
+// ------------------------------------------------------------------------------------------------
+// 回復アイテム（武器のドロップと同じ関数で、まとめて初期化・更新・描画される）
+// ------------------------------------------------------------------------------------------------
+
+// 同時に存在できる回復アイテムの最大数
+#define HEAL_DROP_MAX (16)
+
+struct HealDropData
+{
+	bool active;
+	VECTOR pos;			// 中心の位置
+	int amount;			// 回復量
+	float life;			// 消えるまでの残り時間（秒）
+	float age;			// 出現してからの時間（秒）。上下の揺れに使う
+};
+
+// 回復アイテムを地面に落とす（posは中心）。プレイヤーが触れると拾い、HPが回復する
+// 空きがなければ、残り時間が最も短いものを消して使う
+HealDropData* SpawnHealDrop(int amount, VECTOR pos);
+
+// 取得関数（範囲外ならnullptr）
+HealDropData* GetHealDrop(int index);

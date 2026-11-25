@@ -60,10 +60,8 @@ struct PlayerData
 	bool facingLeft;		// 左向きか
 	float shootTimer;		// 射撃アニメーションを表示する残り時間（秒）
 
-	// 被弾・回復
+	// 被弾
 	float invincibleTimer;	// 無敵の残り時間（秒）
-	float regenDelayTimer;	// 最後の被弾から、自動回復が始まるまでの残り時間（秒）
-	float regenBuffer;		// 回復量の端数（HPは整数なので、小数部分をためておく）
 
 	// アニメーション
 	PlayerState state;
@@ -93,8 +91,11 @@ void PlayerHitEnemyBullet();	// 敵の弾
 // ダメージを受ける（無敵中は無効。HPが0になると死亡）
 void PlayerTakeDamage(int damage);
 
-// 回復中か（HP表示の色を変えるときなどに使う）
-bool PlayerIsRegenerating();
+// HPを回復する。回復したらtrue（HPが満タンのとき、または死亡中は何もせずfalse）
+bool PlayerHeal(int amount);
+
+// HPの最大値
+int PlayerGetMaxHp();
 
 // 武器
 void PlayerEquipWeapon(WeaponType type, int magazine, int reserve);		// 装備する（弾倉・予備弾を指定）
