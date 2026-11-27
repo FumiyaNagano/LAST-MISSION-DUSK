@@ -55,7 +55,7 @@ void UpdateFPS()
 
 void DrawFPS()
 {
-	DrawFormatString(0, 0, GetColor(255, 255, 255), "FPS; %.1f", g_FPSDisplayValue);
+	DrawFormatString(0, 0, GetColor(255, 255, 255), "FPS: %.1f", g_FPSDisplayValue);
 }
 
 void FPSWait()

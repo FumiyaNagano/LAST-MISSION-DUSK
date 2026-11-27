@@ -158,6 +158,7 @@
     <ClCompile Include="Source\Scene\SceneManager.cpp" />
     <ClCompile Include="Source\Scene\Title\TitleScene.cpp" />
     <ClCompile Include="Source\Sound\SoundManager.cpp" />
+    <ClCompile Include="Source\UIImage\UIText.cpp" />
     <ClCompile Include="Source\Weapon\Weapon.cpp" />
     <ClCompile Include="Source\Weapon\WeaponDrop.cpp" />
   </ItemGroup>
@@ -184,6 +185,7 @@
     <ClInclude Include="Source\Scene\SceneManager.h" />
     <ClInclude Include="Source\Scene\Title\TitleScene.h" />
     <ClInclude Include="Source\Sound\SoundManager.h" />
+    <ClInclude Include="Source\UIImage\UIText.h" />
     <ClInclude Include="Source\Weapon\Weapon.h" />
     <ClInclude Include="Source\Weapon\WeaponDrop.h" />
   </ItemGroup>

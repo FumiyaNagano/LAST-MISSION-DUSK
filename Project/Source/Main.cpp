@@ -66,6 +66,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 		DrawFPS();
 
 		// デバッグ用
+		ChangeFont("Lucida Sans Typewriter");
 		DrawFormatString(0, 60, GetColor(255, 255, 255), "HP: %d  inv: %.2f",
 			GetPlayer()->hp, GetPlayer()->invincibleTimer);
 		int dropCount = 0;
